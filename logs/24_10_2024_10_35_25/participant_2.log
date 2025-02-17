@@ -1,0 +1,310 @@
+2024-10-24 10:35:29,386 - [NODE] Tracking CSV enabled
+2024-10-24 10:35:29,387 - [NODE] Role: aggregator
+2024-10-24 10:35:29,387 - [FedAvg] Initialization
+2024-10-24 10:35:29,387 - [OBSERVABLE] Adding observer
+2024-10-24 10:35:29,387 - [BASENODE] Node started
+2024-10-24 10:35:29,387 - [OBSERVABLE] Adding observer
+2024-10-24 10:35:29,388 - [OBSERVABLE] Adding observer
+2024-10-24 10:35:49,388 - [OBSERVABLE] Adding observer
+2024-10-24 10:35:49,389 - [BASENODE_connect_to] Connected to 192.168.50.2:45000 -> New neighbor 192.168.50.2:45000
+2024-10-24 10:35:54,390 - [OBSERVABLE] Adding observer
+2024-10-24 10:35:54,390 - [BASENODE_connect_to] Connected to 192.168.50.3:45000 -> New neighbor 192.168.50.3:45000
+2024-10-24 10:35:54,391 - [NODE_CONNECTION] (NodeConnection Loop) Exception: [Errno 104] Connection reset by peer
+2024-10-24 10:35:54,391 - [NODE_CONNECTION] Closed connection: 192.168.50.3:45000
+2024-10-24 10:35:54,391 - [BASENODE.rm_neighbor] Remove neighbor: 192.168.50.3:45000
+2024-10-24 10:35:59,391 - Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:35:59,391 - Network nodes: ['192.168.50.2:45000', '192.168.50.3:45000', '192.168.50.4:45000']
+2024-10-24 10:35:59,395 - [NODE.__gossip_model_difusion] Gossiping...
+2024-10-24 10:35:59,441 - [NODE] Params received
+2024-10-24 10:35:59,441 - [NODE] Initialization Model Weights
+2024-10-24 10:35:59,442 - [NODE.__gossip_model_difusion] Initialization=True
+2024-10-24 10:35:59,454 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:35:59,454 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:35:59,454 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:35:59,454 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: [] | Nc.modelsaggregated: []
+2024-10-24 10:35:59,454 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: False
+2024-10-24 10:35:59,454 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: 192.168.50.2:45000
+2024-10-24 10:35:59,454 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:35:59,454 - ------------------------------------------------------------------
+2024-10-24 10:35:59,454 - [NODE.__gossip_model] Selected (to exclude) based on condition: []
+2024-10-24 10:35:59,455 - [NODE] Gossip finished.
+2024-10-24 10:36:09,395 - [NODE.__start_learning] Learning started in node 192.168.50.4:45000 -> Round: 0 | Epochs: 1
+2024-10-24 10:36:09,396 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:09,413 - [NODE.__train_step] __train_set = ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:09,413 - [NODE.__validate_train_set] Train set of 2 nodes: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:09,413 - [NODE.__train_step] Role.AGGREGATOR/Role.SERVER process...
+2024-10-24 10:36:09,413 - [NODE.__connect_and_set_aggregator] Aggregator set to: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:09,413 - [NODE.__evaluate] Start evaluation...
+2024-10-24 10:36:09,413 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:11,618 - generated new fontManager
+2024-10-24 10:36:12,518 - [NODE.__evaluate] Finish evaluation...
+2024-10-24 10:36:12,518 - [NODE.__train] Start training...
+2024-10-24 10:36:12,518 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:20,342 - [NODE.__train] Finish training...
+2024-10-24 10:36:20,342 - [NODE.__train_step] self.aggregator.add_model with MY MODEL
+2024-10-24 10:36:20,342 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:20,342 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.4:45000']
+2024-10-24 10:36:20,343 - [Aggregator] __aggregation_lock.acquire() during 300 seconds
+2024-10-24 10:36:20,344 - [Aggregator.add_model] self.__models = dict_keys([])
+2024-10-24 10:36:20,344 - [Aggregator.add_model] Adding model from nodes ['192.168.50.4:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 0
+2024-10-24 10:36:20,344 - [Aggregator] Model added (1/2) from ['192.168.50.4:45000']
+2024-10-24 10:36:20,344 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.4:45000'])
+2024-10-24 10:36:20,344 - [NODE.__train_step] self.broadcast with MODELS_AGGREGATED = MY_NAME
+2024-10-24 10:36:20,344 - [NODE.__gossip_model_aggregation] Gossiping...
+2024-10-24 10:36:20,344 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:20,344 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: ['192.168.50.2:45000', '192.168.50.4:45000'] | Nc.modelsaggregated: []
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: True
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: ('192.168.50.2:45000', 0)
+2024-10-24 10:36:20,344 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:20,344 - ------------------------------------------------------------------
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Selected (to exclude) based on condition: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:20,344 - [NODE.__gossip_model] Selected a random subset of neighbors (to exclude): [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:20,344 - [Aggregator] Getting partial aggregation from dict_keys(['192.168.50.4:45000']), except []
+2024-10-24 10:36:20,345 - [FedAvg.aggregate] Aggregating models: num=1
+2024-10-24 10:36:20,345 - [NODE] Gossiping model to 192.168.50.2:45000.
+2024-10-24 10:36:20,346 - [NODE.__gossip_model] Building params message | Contributors: ['192.168.50.4:45000']
+2024-10-24 10:36:20,346 - [NODE.__gossip_model] Sending params message to <NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>
+2024-10-24 10:36:20,368 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.3:45000']
+2024-10-24 10:36:20,380 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.2:45000']
+2024-10-24 10:36:20,420 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.3:45000', '192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:20,461 - [NODE] Params received
+2024-10-24 10:36:20,462 - [NODE.add_model] Model received from ['192.168.50.3:45000', '192.168.50.2:45000'] --using--> __gossip_model_aggregation in the other node | Now I add the model using self.aggregator.add_model()
+2024-10-24 10:36:20,463 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:20,463 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.3:45000', '192.168.50.2:45000']
+2024-10-24 10:36:20,463 - [Aggregator.add_model] self.__models = dict_keys(['192.168.50.4:45000'])
+2024-10-24 10:36:20,463 - [Aggregator.add_model] Adding model from nodes ['192.168.50.3:45000', '192.168.50.2:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 1
+2024-10-24 10:36:20,463 - [Aggregator] Model added (3/2) from ['192.168.50.3:45000', '192.168.50.2:45000']
+2024-10-24 10:36:20,463 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.4:45000', '192.168.50.3:45000 192.168.50.2:45000'])
+2024-10-24 10:36:20,463 - [Aggregator] __aggregation_lock.release() --> __models = dict_keys(['192.168.50.4:45000', '192.168.50.3:45000 192.168.50.2:45000'])
+2024-10-24 10:36:20,463 - [NODE.add_model] self.broadcast with MODELS_AGGREGATED = ['192.168.50.4:45000', '192.168.50.3:45000', '192.168.50.2:45000']
+2024-10-24 10:36:20,463 - [Aggregator] Aggregating models, timeout reached.
+2024-10-24 10:36:20,463 - [Aggregator] __train_set=['192.168.50.2:45000', '192.168.50.4:45000'] || Missing models: {'192.168.50.2:45000'}
+2024-10-24 10:36:20,474 - [FedAvg.aggregate] Aggregating models: num=2
+2024-10-24 10:36:20,482 - [NODE.update] Override the local model with obj received
+2024-10-24 10:36:20,482 - [NODE.__finish_aggregation_lock] __finish_aggregation_lock.release()
+2024-10-24 10:36:21,344 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:36:21,346 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:21,347 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:21,347 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: ['192.168.50.2:45000', '192.168.50.4:45000'] | Nc.modelsaggregated: ['192.168.50.3:45000', '192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:21,347 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: False
+2024-10-24 10:36:21,347 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: ('192.168.50.2:45000', 3)
+2024-10-24 10:36:21,347 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:21,347 - ------------------------------------------------------------------
+2024-10-24 10:36:21,347 - [NODE.__gossip_model] Selected (to exclude) based on condition: []
+2024-10-24 10:36:21,347 - [NODE] Gossip finished.
+2024-10-24 10:36:21,347 - [FedAvg] Initialization
+2024-10-24 10:36:21,347 - [OBSERVABLE] Adding observer
+2024-10-24 10:36:21,347 - [NODE] Finalizing round: 0
+2024-10-24 10:36:21,347 - [LightningLearner] Starting round: 1
+2024-10-24 10:36:21,347 - [NODE] Round 1 of 3 finished.
+2024-10-24 10:36:21,348 - [NODE.__train_step] __train_set = ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:21,348 - [NODE.__validate_train_set] Train set of 2 nodes: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:21,348 - [NODE.__train_step] Role.AGGREGATOR/Role.SERVER process...
+2024-10-24 10:36:21,348 - [NODE.__connect_and_set_aggregator] Aggregator set to: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:21,348 - [NODE.__evaluate] Start evaluation...
+2024-10-24 10:36:21,348 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:22,371 - [NODE.__evaluate] Finish evaluation...
+2024-10-24 10:36:22,371 - [NODE.__train] Start training...
+2024-10-24 10:36:22,371 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:29,897 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.2:45000']
+2024-10-24 10:36:29,899 - [NODE.__train] Finish training...
+2024-10-24 10:36:29,899 - [NODE.__train_step] self.aggregator.add_model with MY MODEL
+2024-10-24 10:36:29,900 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:29,900 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.4:45000']
+2024-10-24 10:36:29,900 - [Aggregator] __aggregation_lock.acquire() during 300 seconds
+2024-10-24 10:36:29,901 - [Aggregator.add_model] self.__models = dict_keys([])
+2024-10-24 10:36:29,901 - [Aggregator.add_model] Adding model from nodes ['192.168.50.4:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 0
+2024-10-24 10:36:29,901 - [Aggregator] Model added (1/2) from ['192.168.50.4:45000']
+2024-10-24 10:36:29,901 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.4:45000'])
+2024-10-24 10:36:29,901 - [NODE.__train_step] self.broadcast with MODELS_AGGREGATED = MY_NAME
+2024-10-24 10:36:29,901 - [NODE.__gossip_model_aggregation] Gossiping...
+2024-10-24 10:36:29,901 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:36:29,901 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:29,901 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:29,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: ['192.168.50.2:45000', '192.168.50.4:45000'] | Nc.modelsaggregated: ['192.168.50.2:45000']
+2024-10-24 10:36:29,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: True
+2024-10-24 10:36:29,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: ('192.168.50.2:45000', 1)
+2024-10-24 10:36:29,902 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:29,902 - ------------------------------------------------------------------
+2024-10-24 10:36:29,902 - [NODE.__gossip_model] Selected (to exclude) based on condition: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:29,902 - [NODE.__gossip_model] Selected a random subset of neighbors (to exclude): [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:29,903 - [Aggregator] Getting partial aggregation from dict_keys(['192.168.50.4:45000']), except ['192.168.50.2:45000']
+2024-10-24 10:36:29,903 - [FedAvg.aggregate] Aggregating models: num=1
+2024-10-24 10:36:29,904 - [NODE] Gossiping model to 192.168.50.2:45000.
+2024-10-24 10:36:29,905 - [NODE.__gossip_model] Building params message | Contributors: ['192.168.50.4:45000']
+2024-10-24 10:36:29,905 - [NODE.__gossip_model] Sending params message to <NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>
+2024-10-24 10:36:29,966 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:30,051 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.2:45000', '192.168.50.4:45000', '192.168.50.3:45000']
+2024-10-24 10:36:30,123 - [NODE] Params received
+2024-10-24 10:36:30,124 - [NODE.add_model] Model received from ['192.168.50.2:45000'] --using--> __gossip_model_aggregation in the other node | Now I add the model using self.aggregator.add_model()
+2024-10-24 10:36:30,126 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:30,126 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.2:45000']
+2024-10-24 10:36:30,126 - [Aggregator.add_model] self.__models = dict_keys(['192.168.50.4:45000'])
+2024-10-24 10:36:30,126 - [Aggregator.add_model] Adding model from nodes ['192.168.50.2:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 1
+2024-10-24 10:36:30,126 - [Aggregator] Model added (2/2) from ['192.168.50.2:45000']
+2024-10-24 10:36:30,126 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.4:45000', '192.168.50.2:45000'])
+2024-10-24 10:36:30,126 - [Aggregator] __aggregation_lock.release() --> __models = dict_keys(['192.168.50.4:45000', '192.168.50.2:45000'])
+2024-10-24 10:36:30,127 - [NODE.add_model] self.broadcast with MODELS_AGGREGATED = ['192.168.50.4:45000', '192.168.50.2:45000']
+2024-10-24 10:36:30,127 - [Aggregator] Aggregating models, timeout reached.
+2024-10-24 10:36:30,127 - [Aggregator] Aggregating models.
+2024-10-24 10:36:30,144 - [FedAvg.aggregate] Aggregating models: num=2
+2024-10-24 10:36:30,155 - [NODE.update] Override the local model with obj received
+2024-10-24 10:36:30,901 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:36:30,902 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:30,902 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:30,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: ['192.168.50.2:45000', '192.168.50.4:45000'] | Nc.modelsaggregated: ['192.168.50.4:45000', '192.168.50.3:45000', '192.168.50.2:45000']
+2024-10-24 10:36:30,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: False
+2024-10-24 10:36:30,902 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: ('192.168.50.2:45000', 3)
+2024-10-24 10:36:30,902 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:30,902 - ------------------------------------------------------------------
+2024-10-24 10:36:30,902 - [NODE.__gossip_model] Selected (to exclude) based on condition: []
+2024-10-24 10:36:30,902 - [NODE] Gossip finished.
+2024-10-24 10:36:30,903 - [FedAvg] Initialization
+2024-10-24 10:36:30,903 - [OBSERVABLE] Adding observer
+2024-10-24 10:36:30,903 - [NODE] Finalizing round: 1
+2024-10-24 10:36:30,903 - [LightningLearner] Starting round: 2
+2024-10-24 10:36:30,904 - [NODE] Round 2 of 3 finished.
+2024-10-24 10:36:30,905 - [NODE.__train_step] __train_set = ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:30,906 - [NODE.__validate_train_set] Train set of 2 nodes: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:30,906 - [NODE.__train_step] Role.AGGREGATOR/Role.SERVER process...
+2024-10-24 10:36:30,908 - [NODE.__connect_and_set_aggregator] Aggregator set to: ['192.168.50.2:45000', '192.168.50.4:45000']
+2024-10-24 10:36:30,909 - [NODE.__evaluate] Start evaluation...
+2024-10-24 10:36:30,912 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:30,940 - [NODE] Params received
+2024-10-24 10:36:30,943 - [NODE.add_model] Model received from ['192.168.50.3:45000'] --using--> __gossip_model_aggregation in the other node | Now I add the model using self.aggregator.add_model()
+2024-10-24 10:36:30,945 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:30,945 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.3:45000']
+2024-10-24 10:36:30,945 - [Aggregator] __aggregation_lock.acquire() during 300 seconds
+2024-10-24 10:36:30,945 - [Aggregator.add_model] self.__models = dict_keys([])
+2024-10-24 10:36:30,946 - [Aggregator.add_model] Adding model from nodes ['192.168.50.3:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 0
+2024-10-24 10:36:30,946 - [Aggregator] Model added (1/2) from ['192.168.50.3:45000']
+2024-10-24 10:36:30,946 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.3:45000'])
+2024-10-24 10:36:30,946 - [NODE.add_model] self.broadcast with MODELS_AGGREGATED = ['192.168.50.3:45000']
+2024-10-24 10:36:31,918 - [NODE.__evaluate] Finish evaluation...
+2024-10-24 10:36:31,918 - [NODE.__train] Start training...
+2024-10-24 10:36:31,918 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:45,030 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.4:45000', '192.168.50.3:45000']
+2024-10-24 10:36:45,056 - [NODE.__train] Finish training...
+2024-10-24 10:36:45,057 - [NODE.__train_step] self.aggregator.add_model with MY MODEL
+2024-10-24 10:36:45,057 - [Aggregator.add_model] Entry point
+2024-10-24 10:36:45,057 - [Aggregator.add_model] Nodes who contributed to the model: ['192.168.50.4:45000']
+2024-10-24 10:36:45,058 - [Aggregator.add_model] self.__models = dict_keys(['192.168.50.3:45000'])
+2024-10-24 10:36:45,058 - [Aggregator.add_model] Adding model from nodes ['192.168.50.4:45000'] ||||| __train_set = ['192.168.50.2:45000', '192.168.50.4:45000'] | len(models_added) = 1
+2024-10-24 10:36:45,058 - [Aggregator] Model added (2/2) from ['192.168.50.4:45000']
+2024-10-24 10:36:45,058 - [Aggregator] Models for aggregation: dict_keys(['192.168.50.3:45000', '192.168.50.4:45000'])
+2024-10-24 10:36:45,058 - [Aggregator] __aggregation_lock.release() --> __models = dict_keys(['192.168.50.3:45000', '192.168.50.4:45000'])
+2024-10-24 10:36:45,058 - [NODE.__train_step] self.broadcast with MODELS_AGGREGATED = MY_NAME
+2024-10-24 10:36:45,058 - [Aggregator] Aggregating models, timeout reached.
+2024-10-24 10:36:45,058 - [NODE.__gossip_model_aggregation] Gossiping...
+2024-10-24 10:36:45,059 - [Aggregator] Aggregating models.
+2024-10-24 10:36:45,059 - ---------------------Feedback about neighbors---------------------
+2024-10-24 10:36:45,059 - [NODE.__gossip_model] Neighbors: [<NodeConnection(node_connection-192.168.50.4:45000-192.168.50.2:45000, started 124610689369664)>]
+2024-10-24 10:36:45,059 - ---------------------Feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:45,059 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | My __train_set: ['192.168.50.2:45000', '192.168.50.4:45000'] | Nc.modelsaggregated: ['192.168.50.4:45000', '192.168.50.3:45000']
+2024-10-24 10:36:45,059 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Candidate_condition return: False
+2024-10-24 10:36:45,059 - [NODE.__gossip_model] Neighbor: node_connection-192.168.50.4:45000-192.168.50.2:45000 | Status_function return: ('192.168.50.2:45000', 2)
+2024-10-24 10:36:45,059 - ---------------------End of feedback about neighbor node_connection-192.168.50.4:45000-192.168.50.2:45000---------------------
+2024-10-24 10:36:45,059 - ------------------------------------------------------------------
+2024-10-24 10:36:45,059 - [NODE.__gossip_model] Selected (to exclude) based on condition: []
+2024-10-24 10:36:45,060 - [NODE] Gossip finished.
+2024-10-24 10:36:45,060 - [FedAvg] Initialization
+2024-10-24 10:36:45,060 - [OBSERVABLE] Adding observer
+2024-10-24 10:36:45,060 - [NODE] Finalizing round: 2
+2024-10-24 10:36:45,060 - [FedAvg.aggregate] Aggregating models: num=2
+2024-10-24 10:36:45,061 - [LightningLearner] Starting round: 3
+2024-10-24 10:36:45,061 - [NODE] Round 3 of 3 finished.
+2024-10-24 10:36:45,061 - [NODE.__evaluate] Start evaluation...
+2024-10-24 10:36:45,061 - [Learner] Creating trainer with accelerator: cpu
+2024-10-24 10:36:45,189 - [NODE.update] Override the local model with obj received
+2024-10-24 10:36:46,648 - [NODE.__evaluate] Finish evaluation...
+2024-10-24 10:36:46,649 - [NODE] FL experiment finished | Round: 3 | Total rounds: 3 | [!] Both to None
+2024-10-24 10:36:46,649 - [NODE] FL experiment finished | __stop_learning()
+2024-10-24 10:36:46,649 - [NODE] Stopping learning
+2024-10-24 10:36:46,649 - [FedAvg] Initialization
+2024-10-24 10:36:46,649 - [OBSERVABLE] Adding observer
+2024-10-24 10:36:46,649 - [NODE.__start_learning] Thread __start_learning finished in node 192.168.50.4:45000
+2024-10-24 10:36:47,165 - [COMM_PROTOCOL.MODELS_AGGREGATED] Received models_aggregated message with ['192.168.50.2:45000']
+2024-10-24 10:36:47,229 - [NODE] Params received
+2024-10-24 10:36:47,229 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:48,235 - [NODE] Params received
+2024-10-24 10:36:48,235 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:49,239 - [NODE] Params received
+2024-10-24 10:36:49,239 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:50,231 - [NODE] Params received
+2024-10-24 10:36:50,231 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:51,214 - [NODE] Params received
+2024-10-24 10:36:51,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:52,224 - [NODE] Params received
+2024-10-24 10:36:52,224 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:53,222 - [NODE] Params received
+2024-10-24 10:36:53,222 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:54,221 - [NODE] Params received
+2024-10-24 10:36:54,221 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:55,213 - [NODE] Params received
+2024-10-24 10:36:55,213 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:56,223 - [NODE] Params received
+2024-10-24 10:36:56,223 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:57,211 - [NODE] Params received
+2024-10-24 10:36:57,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:58,214 - [NODE] Params received
+2024-10-24 10:36:58,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:36:59,211 - [NODE] Params received
+2024-10-24 10:36:59,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:00,213 - [NODE] Params received
+2024-10-24 10:37:00,213 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:01,210 - [NODE] Params received
+2024-10-24 10:37:01,210 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:02,212 - [NODE] Params received
+2024-10-24 10:37:02,212 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:03,212 - [NODE] Params received
+2024-10-24 10:37:03,212 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:04,214 - [NODE] Params received
+2024-10-24 10:37:04,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:05,206 - [NODE] Params received
+2024-10-24 10:37:05,206 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:06,214 - [NODE] Params received
+2024-10-24 10:37:06,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:07,211 - [NODE] Params received
+2024-10-24 10:37:07,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:08,218 - [NODE] Params received
+2024-10-24 10:37:08,219 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:09,216 - [NODE] Params received
+2024-10-24 10:37:09,216 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:10,206 - [NODE] Params received
+2024-10-24 10:37:10,206 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:11,205 - [NODE] Params received
+2024-10-24 10:37:11,205 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:12,213 - [NODE] Params received
+2024-10-24 10:37:12,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:13,212 - [NODE] Params received
+2024-10-24 10:37:13,212 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:14,211 - [NODE] Params received
+2024-10-24 10:37:14,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:15,221 - [NODE] Params received
+2024-10-24 10:37:15,221 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:16,217 - [NODE] Params received
+2024-10-24 10:37:16,217 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:17,211 - [NODE] Params received
+2024-10-24 10:37:17,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:18,210 - [NODE] Params received
+2024-10-24 10:37:18,210 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:19,214 - [NODE] Params received
+2024-10-24 10:37:19,214 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:20,243 - [NODE] Params received
+2024-10-24 10:37:20,244 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:21,219 - [NODE] Params received
+2024-10-24 10:37:21,219 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:22,223 - [NODE] Params received
+2024-10-24 10:37:22,223 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:23,208 - [NODE] Params received
+2024-10-24 10:37:23,208 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:24,211 - [NODE] Params received
+2024-10-24 10:37:24,211 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:25,214 - [NODE] Params received
+2024-10-24 10:37:25,215 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:26,210 - [NODE] Params received
+2024-10-24 10:37:26,210 - [NODE] Tried to add a model while learning is not running
+2024-10-24 10:37:27,211 - [NODE] Params received
+2024-10-24 10:37:27,211 - [NODE] Tried to add a model while learning is not running

@@ -1,0 +1,68 @@
+
+    services:
+    
+              participant0:
+                image: robust
+                volumes:
+                    - /home/fer/Documentos/robust-venv/demo:/robust
+                extra_hosts:
+                    - "host.docker.internal:host-gateway"
+                ipc: host
+                privileged: true
+                command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      ifconfig && echo '192.168.50.1 host.docker.internal' >> /etc/hosts && python3.11 /robust/federation.py /robust/robust/participant_0.json
+                networks:
+                    robust:
+                        ipv4_address: 192.168.50.2
+            
+              participant1:
+                image: robust
+                volumes:
+                    - /home/fer/Documentos/robust-venv/demo:/robust
+                extra_hosts:
+                    - "host.docker.internal:host-gateway"
+                ipc: host
+                privileged: true
+                command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      ifconfig && echo '192.168.50.1 host.docker.internal' >> /etc/hosts && python3.11 /robust/federation.py /robust/robust/participant_1.json
+                depends_on:
+                    - participant0
+                networks:
+                    robust:
+                        ipv4_address: 192.168.50.3
+            
+              participant2:
+                image: robust
+                volumes:
+                    - /home/fer/Documentos/robust-venv/demo:/robust
+                extra_hosts:
+                    - "host.docker.internal:host-gateway"
+                ipc: host
+                privileged: true
+                command:
+                    - /bin/bash
+                    - -c
+                    - |
+                      ifconfig && echo '192.168.50.1 host.docker.internal' >> /etc/hosts && python3.11 /robust/federation.py /robust/robust/participant_2.json
+                depends_on:
+                    - participant0
+                networks:
+                    robust:
+                        ipv4_address: 192.168.50.4
+            
+    
+    networks:
+        robust:
+            name: robust
+            driver: bridge
+            ipam:
+              config:
+                - subnet: 192.168.50.0/24
+                  gateway: 192.168.50.1
+    
