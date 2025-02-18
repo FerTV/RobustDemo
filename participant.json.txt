@@ -42,8 +42,9 @@
   "tracking_args": {
     "enable_remote_tracking": false,
     "local_tracking": "",
-    "log_dir": "/robust/logs",
-    "config_dir": ""
+    "log_dir": "",
+    "config_dir": "",
+    "models_dir": ""
   },
   "BLOCK_SIZE": 2048,
   "NODE_TIMEOUT": 20,

@@ -558,6 +558,10 @@ class Node(BaseNode):
         self.aggregator.clear()
         logging.info("[NODE] Finalizing round: {}".format(self.round))
         self.learner.finalize_round()  # TODO: Fix to improve functionality
+        
+        logging.info(f"[NODE] Saving model in round {self.round}")
+        self.learner.save_model(round=self.round)
+        
         self.round = self.round + 1
         ###FER###
         #self.learner.logger.log_metrics({"Round": self.round}, step=self.learner.logger.global_step)

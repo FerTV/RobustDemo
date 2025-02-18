@@ -52,9 +52,15 @@ class Scenario:
         return cls(**data)
 
 # Globals
-config_dir = os.path.join(os.getcwd(), "robust")
-log_dir = os.path.join(os.getcwd(), "logs", datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S"))
-os.mkdir(log_dir)
+date = datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S") 
+config_dir = os.path.join(os.getcwd(), "robust", "config", date)
+log_dir = os.path.join(os.getcwd(), "robust", "logs", date)
+models_dir = os.path.join(os.getcwd(), "robust", "models", date)
+
+os.makedirs(config_dir, exist_ok=True)
+os.makedirs(log_dir, exist_ok=True)
+os.makedirs(models_dir, exist_ok=True)
+
 scenario_json = None
 scenario_path = os.path.join(os.getcwd(), "scenario.json")
 
@@ -237,7 +243,6 @@ def create_configs():
         participant_config["device_args"]["accelerator"] = scenario.accelerator
         participant_config["device_args"]["logging"] = True
         participant_config["aggregator_args"]["algorithm"] = scenario.agg_algorithm
-        participant_config["tracking_args"]["log_dir"] = os.path.join("robust", "logs", datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S"))
         with open(participant_file, "w") as f:
             json.dump(participant_config, f, sort_keys=False, indent=2)
             
@@ -308,7 +313,7 @@ def start_federation(idx_start_node, participants):
     #nodes.sort(key=lambda x: x['device_args']['idx'])
     for node in participants:
         idx = node['device_args']['idx']
-        path = f"/robust/robust/participant_{idx}.json"
+        path = f"/robust/robust/config/{date}/participant_{idx}.json"
         logging.info("Starting node {} with configuration {}".format(idx, path))
         logging.info("Node {} is listening on ip {}".format(idx, node['network_args']['ip']))
         # Add one service for each participant
@@ -333,7 +338,9 @@ def start_federation(idx_start_node, participants):
     with open(f"{config_dir}/docker-compose.yml", "w") as f:
         f.write(docker_compose_file)
     for node in participants:
-        node['tracking_args']['config_dir'] = config_dir
+        node['tracking_args']['log_dir'] = f"/robust/robust/logs/{date}"
+        node['tracking_args']['config_dir'] = f"/robust/robust/config/{date}"
+        node['tracking_args']['models_dir'] = f"/robust/robust/models/{date}"
         # Write the config file in config directory
         with open(f"{config_dir}/participant_{node['device_args']['idx']}.json", "w") as f:
             json.dump(node, f, indent=4)

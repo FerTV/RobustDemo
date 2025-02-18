@@ -16,6 +16,7 @@
 #
 
 import logging
+import os
 import pickle
 import time
 from collections import OrderedDict
@@ -110,6 +111,15 @@ class LightningLearner(NodeLearner):
 
     def get_parameters(self):
         return self.model.state_dict()
+    
+    def save_model(self, round):
+        try:
+            idx = self.config.participant["device_args"]["idx"]
+            path = os.path.join(self.config.participant["tracking_args"]["models_dir"], f"participant_{idx}_round_{round}_model.pth")
+            torch.save(self.model, path)
+            logging.info(f"model correctly saved in path: {path} in round: {round}")
+        except Exception as e:
+            logging.error(f"Error saving the model {e}")
 
     def set_epochs(self, epochs):
         self.epochs = epochs
