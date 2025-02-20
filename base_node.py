@@ -87,7 +87,8 @@ class BaseNode(threading.Thread, Observer):
         self.__nei_lock = threading.Lock()
 
         # Logging
-        self.log_dir = os.path.join(config.participant['tracking_args']["log_dir"])
+        self.log_dir = config.participant['tracking_args']["log_dir"]
+        logging.info(f"FER log_dir {self.log_dir}")
         if not os.path.exists(self.log_dir):
             os.makedirs(self.log_dir)
         self.log_filename = f"{self.log_dir}/participant_{config.participant['device_args']['idx']}"

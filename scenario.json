@@ -1,33 +1,33 @@
-  {
+{
     "topology": "Fully",
     "nodes": {
-      "0": {
-        "id": 0,
-        "ip": "192.168.50.2",
-        "port": "45000",
-        "role": "aggregator",
-        "malicious": false,
-        "proxy": false,
-        "start": true
-      },
-      "1": {
-        "id": 1,
-        "ip": "192.168.50.3",
-        "port": "45000",
-        "role": "aggregator",
-        "malicious": false,
-        "proxy": false,
-        "start": false
-      },
-      "2": {
-        "id": 2,
-        "ip": "192.168.50.4",
-        "port": "45000",
-        "role": "aggregator",
-        "malicious": false,
-        "proxy": false,
-        "start": false
-      }
+        "0": {
+            "id": 0,
+            "ip": "192.168.50.2",
+            "port": "45000",
+            "role": "aggregator",
+            "malicious": false,
+            "proxy": false,
+            "start": true
+        },
+        "1": {
+            "id": 1,
+            "ip": "192.168.50.3",
+            "port": "45000",
+            "role": "aggregator",
+            "malicious": false,
+            "proxy": false,
+            "start": false
+        },
+        "2": {
+            "id": 2,
+            "ip": "192.168.50.4",
+            "port": "45000",
+            "role": "aggregator",
+            "malicious": false,
+            "proxy": false,
+            "start": false
+        }
     },
     "n_nodes": 3,
     "dataset": "MNIST",
@@ -39,4 +39,4 @@
     "network_subnet": "192.168.50.0/24",
     "network_gateway": "192.168.50.1",
     "epochs": "1"
-  }
+}

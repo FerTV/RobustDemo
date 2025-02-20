@@ -10,14 +10,16 @@ import subprocess
 import sys
 import time
 
-import docker
 from matplotlib import pyplot as plt
 import numpy as np
 import networkx as nx
+from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi import Request
 
 from role import Role
 
-class Scenario:
+class Scenario():
     def __init__(
         self,
         topology,
@@ -52,16 +54,14 @@ class Scenario:
         return cls(**data)
 
 # Globals
-date = datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S") 
-config_dir = os.path.join(os.getcwd(), "robust", "config", date)
-log_dir = os.path.join(os.getcwd(), "robust", "logs", date)
-models_dir = os.path.join(os.getcwd(), "robust", "models", date)
+config_dir = os.path.join(os.getcwd(), "robust", "config")
+log_dir = os.path.join(os.getcwd(), "robust", "logs")
+models_dir = os.path.join(os.getcwd(), "robust", "models")
 
 os.makedirs(config_dir, exist_ok=True)
 os.makedirs(log_dir, exist_ok=True)
 os.makedirs(models_dir, exist_ok=True)
 
-scenario_json = None
 scenario_path = os.path.join(os.getcwd(), "scenario.json")
 
 # App control
@@ -77,6 +77,30 @@ def signal_handler(signal, frame):
     
 signal.signal(signal.SIGINT, signal_handler)
 
+# Initialize FastAPI app
+app = FastAPI()
+
+@app.post("/robust/run/scenario")
+async def set_scenario(request: Request):
+    scenario = await request.json()
+    try:
+        with open(scenario_path, "w") as f:
+            json.dump(scenario, f, indent=4)
+            
+        await create_configs()
+        return {"message": "Scenario running successfully"}
+    except Exception as e:
+        return {"error": f"Failed to run scenario: {str(e)}"}
+    
+@app.get("/roubust/models")
+async def get_models(scenario_date, particpant_id, round):
+    model = os.path.join(models_dir, scenario_date, f"participant_{particpant_id}_round_{round}_model.pth")
+    
+    if not os.path.exists(model):
+        return {"error": "Model not found"}
+    
+    return FileResponse(model, media_type="application/octet-stream", filename=f"participant_{particpant_id}_round_{round}_model.pth")
+    
 # Basics
 def stop_participants():
         if sys.platform == "win32":
@@ -203,7 +227,18 @@ def get_neighbors(scenario, topology, idx):
             neighbors_data_string += " "
     return neighbors_data_string
 
-def create_configs():    
+async def create_configs():    
+    date = datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S")
+    config_dir = os.path.join(os.getcwd(), "robust", "config", date)
+    log_dir = os.path.join(os.getcwd(), "robust", "logs", date)
+    models_dir = os.path.join(os.getcwd(), "robust", "models", date)
+    
+    os.makedirs(config_dir, exist_ok=True)
+    os.makedirs(log_dir, exist_ok=True)
+    os.makedirs(models_dir, exist_ok=True)
+    
+    logging.info("configs created")
+
     with open(scenario_path, "r", encoding="utf-8") as file:
         scenario_json = json.load(file)
         
@@ -253,9 +288,9 @@ def create_configs():
         
     draw_graph(path=f"{log_dir}/topology.png", plot=False, scenario=scenario, topology=topology)
         
-    start_federation(idx_start_node, participants)
+    start_federation(idx_start_node, participants, date)
 
-def start_federation(idx_start_node, participants):
+def start_federation(idx_start_node, participants, date):
     docker_compose_template = """
     services:
     {}
@@ -335,18 +370,18 @@ def start_federation(idx_start_node, participants):
     docker_compose_file = docker_compose_template.format(services)
     docker_compose_file += network_template.format("192.168.50.0/24", "192.168.50.1")
     # Write the Docker Compose file in config directory
-    with open(f"{config_dir}/docker-compose.yml", "w") as f:
+    with open(f"{config_dir}/{date}/docker-compose.yml", "w") as f:
         f.write(docker_compose_file)
     for node in participants:
         node['tracking_args']['log_dir'] = f"/robust/robust/logs/{date}"
         node['tracking_args']['config_dir'] = f"/robust/robust/config/{date}"
         node['tracking_args']['models_dir'] = f"/robust/robust/models/{date}"
         # Write the config file in config directory
-        with open(f"{config_dir}/participant_{node['device_args']['idx']}.json", "w") as f:
+        with open(f"{config_dir}/{date}/participant_{node['device_args']['idx']}.json", "w") as f:
             json.dump(node, f, indent=4)
     # Start the Docker Compose file, catch error if any
     try:
-        subprocess.check_call(["docker", "compose", "-f", f"{config_dir}/docker-compose.yml", "up", "-d"])
+        subprocess.check_call(["docker", "compose", "-f", f"{config_dir}/{date}/docker-compose.yml", "up", "-d"])
     except subprocess.CalledProcessError as e:
         logging.error("Docker Compose failed to start, please check if Docker is running and Docker Compose is installed.")
         logging.error(e)
@@ -354,7 +389,7 @@ def start_federation(idx_start_node, participants):
 
 def main():
     logging.info("STARTING...")
-    create_configs()
+    # create_configs()
     print("Press CTRL+C to exit")
     while True:
         time.sleep(1)
