@@ -1,5 +1,6 @@
 from datetime import datetime
 import hashlib
+import io
 import json
 import logging
 import os
@@ -9,12 +10,14 @@ import signal
 import subprocess
 import sys
 import time
+from typing import Optional
+import zipfile
 
 from matplotlib import pyplot as plt
 import numpy as np
 import networkx as nx
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi import Request
 
 from role import Role
@@ -87,19 +90,79 @@ async def set_scenario(request: Request):
         with open(scenario_path, "w") as f:
             json.dump(scenario, f, indent=4)
             
-        await create_configs()
-        return {"message": "Scenario running successfully"}
+        date = await create_configs()
+        return {"message": "Scenario running successfully", "scenario": date}
     except Exception as e:
         return {"error": f"Failed to run scenario: {str(e)}"}
     
-@app.get("/roubust/models")
-async def get_models(scenario_date, particpant_id, round):
-    model = os.path.join(models_dir, scenario_date, f"participant_{particpant_id}_round_{round}_model.pth")
+@app.get("/robust/models")
+async def get_models(scenario_date: str, participant_id: Optional[int] = None, round: Optional[int] = None):
+    model_path = os.path.join(models_dir, scenario_date)
+
+    if not os.path.exists(model_path):
+        return JSONResponse(content={"error": "Scenario not found"}, status_code=404)
+
+    files_to_return = []
     
-    if not os.path.exists(model):
-        return {"error": "Model not found"}
+    for file in os.listdir(model_path):
+        if participant_id is not None and round is not None:
+            if file == f"participant_{participant_id}_round_{round}_model.pth":
+                return FileResponse(os.path.join(model_path, file), media_type="application/octet-stream", filename=file)
+        elif participant_id is not None and f"participant_{participant_id}_" in file:
+            files_to_return.append(file)
+        elif round is not None and f"_round_{round}_" in file:
+            files_to_return.append(file)
+        elif participant_id is None and round is None:
+            files_to_return.append(file)
+
+    if not files_to_return:
+        return JSONResponse(content={"error": "No models found"}, status_code=404)
+
+    if len(files_to_return) == 1:
+        return FileResponse(os.path.join(model_path, files_to_return[0]), media_type="application/octet-stream", filename=files_to_return[0])
     
-    return FileResponse(model, media_type="application/octet-stream", filename=f"participant_{particpant_id}_round_{round}_model.pth")
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for file in files_to_return:
+            zip_file.write(os.path.join(model_path, file), arcname=file)
+    
+    zip_buffer.seek(0)
+    
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=models.zip"})
+
+@app.get("/robust/metrics")
+async def get_metrics(scenario_date: str, participant_id: Optional[int] = None):
+    metrics_path = os.path.join(log_dir, scenario_date, "metrics")
+
+    if not os.path.exists(metrics_path):
+        return JSONResponse(content={"error": "Scenario not found"}, status_code=404)
+
+    if participant_id is not None:
+        metrics_file = os.path.join(metrics_path, f"participant_{participant_id}", "metrics.csv")
+        if os.path.exists(metrics_file):
+            return FileResponse(metrics_file, media_type="application/octet-stream", filename=f"metrics_participant_{participant_id}.csv")
+        return JSONResponse(content={"error": "Metrics not found for participant"}, status_code=404)
+    
+    files_to_return = []
+    for participant_folder in os.listdir(metrics_path):
+        participant_metrics = os.path.join(metrics_path, participant_folder, "metrics.csv")
+        if os.path.exists(participant_metrics):
+            files_to_return.append((participant_folder, participant_metrics))
+
+    if not files_to_return:
+        return JSONResponse(content={"error": "No metrics found"}, status_code=404)
+
+    if len(files_to_return) == 1:
+        return FileResponse(files_to_return[0][1], media_type="application/octet-stream", filename=f"metrics_{files_to_return[0][0]}.csv")
+
+    zip_buffer = io.BytesIO()
+    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for participant_folder, file_path in files_to_return:
+            zip_file.write(file_path, arcname=f"metrics_{participant_folder}.csv")
+    
+    zip_buffer.seek(0)
+
+    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=all_metrics.zip"})
     
 # Basics
 def stop_participants():
@@ -289,6 +352,8 @@ async def create_configs():
     draw_graph(path=f"{log_dir}/topology.png", plot=False, scenario=scenario, topology=topology)
         
     start_federation(idx_start_node, participants, date)
+    
+    return date
 
 def start_federation(idx_start_node, participants, date):
     docker_compose_template = """
