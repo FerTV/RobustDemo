@@ -16,7 +16,6 @@
 #
 
 import logging
-import os
 import pickle
 import time
 from collections import OrderedDict
@@ -64,9 +63,7 @@ class LightningLearner(NodeLearner):
         # self.local_step = 0
         # self.global_step = 0
 
-        ###FER###
-        #self.logger.log_metrics({"Round": self.round}, step=self.logger.global_step)
-        ###FER###
+        self.logger.log_metrics({"Round": self.round}, step=self.logger.global_step)
 
 
     def set_model(self, model):
@@ -111,15 +108,6 @@ class LightningLearner(NodeLearner):
 
     def get_parameters(self):
         return self.model.state_dict()
-    
-    def save_model(self, round):
-        try:
-            idx = self.config.participant["device_args"]["idx"]
-            path = os.path.join(self.config.participant["tracking_args"]["models_dir"], f"participant_{idx}_round_{round}_model.pth")
-            torch.save(self.model, path)
-            logging.info(f"model correctly saved in path: {path} in round: {round}")
-        except Exception as e:
-            logging.error(f"Error saving the model {e}")
 
     def set_epochs(self, epochs):
         self.epochs = epochs
@@ -156,11 +144,9 @@ class LightningLearner(NodeLearner):
             logging.error("Something went wrong with pytorch lightning. {}".format(e))
             return None
 
-    # def log_validation_metrics(self, loss, metric, round=None, name=None):
-    #     ###FER###
-    #     #self.logger.log_metrics({"Test/Loss": loss, "Test/Accuracy": metric}, step=self.logger.global_step)
-    #     ###FER###
-    #     pass
+    def log_validation_metrics(self, loss, metric, round=None, name=None):
+        self.logger.log_metrics({"Test/Loss": loss, "Test/Accuracy": metric}, step=self.logger.global_step)
+        pass
 
     def get_num_samples(self):
         return (
@@ -176,9 +162,7 @@ class LightningLearner(NodeLearner):
             pass
 
     def finalize_round(self):
-        ###FER###
-        #self.logger.global_step = self.logger.global_step + self.logger.local_step
-        ###FER###
+        self.logger.global_step = self.logger.global_step + self.logger.local_step
         self.logger.local_step = 0
         pass
 

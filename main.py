@@ -84,14 +84,14 @@ signal.signal(signal.SIGINT, signal_handler)
 app = FastAPI()
 
 @app.post("/robust/run/scenario")
-async def set_scenario(request: Request):
+async def run_scenario(request: Request):
     scenario = await request.json()
     try:
         with open(scenario_path, "w") as f:
             json.dump(scenario, f, indent=4)
             
-        date = await create_configs()
-        return {"message": "Scenario running successfully", "scenario": date}
+        scenario_date = await create_configs()
+        return {"message": "Scenario running successfully", "scenario_date": scenario_date}
     except Exception as e:
         return {"error": f"Failed to run scenario: {str(e)}"}
     

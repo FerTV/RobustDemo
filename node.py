@@ -32,8 +32,6 @@ import random
 import threading
 import time
 
-from lightning.pytorch.loggers import WandbLogger, CSVLogger
-
 from base_node import BaseNode
 from communication_protocol import CommunicationProtocol
 from config import Config
@@ -42,6 +40,7 @@ from pytorch.learning.exceptions import DecodingParamsError, ModelNotMatchingErr
 from pytorch.lightninglearner import LightningLearner
 from role import Role
 from utils.observer import Events, Observer
+from pytorch.csvlogger import CSVLogger
 
 
 class Node(BaseNode):
