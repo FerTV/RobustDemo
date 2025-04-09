@@ -18,7 +18,6 @@
 import logging
 import os
 import pickle
-import time
 from collections import OrderedDict
 
 import torch
@@ -116,7 +115,7 @@ class LightningLearner(NodeLearner):
         try:
             idx = self.config.participant["device_args"]["idx"]
             path = os.path.join(self.config.participant["tracking_args"]["models_dir"], f"participant_{idx}_round_{round}_model.pth")
-            torch.save(self.model, path)
+            torch.save(self.get_parameters(), path)
             logging.info(f"model correctly saved in path: {path} in round: {round}")
         except Exception as e:
             logging.error(f"Error saving the model {e}")

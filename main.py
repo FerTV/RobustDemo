@@ -83,6 +83,10 @@ signal.signal(signal.SIGINT, signal_handler)
 # Initialize FastAPI app
 app = FastAPI()
 
+@app.get("/")
+async def read_root():
+    return {"message": "Welcome to the ROBUST Controller API"}
+
 @app.post("/robust/run/scenario")
 async def set_scenario(request: Request):
     scenario = await request.json()
