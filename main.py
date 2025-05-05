@@ -37,6 +37,7 @@ class Scenario():
         network_subnet,
         network_gateway,
         epochs,
+        date
     ):
         self.topology = topology
         self.nodes = nodes
@@ -51,6 +52,7 @@ class Scenario():
         self.network_subnet = network_subnet
         self.network_gateway = network_gateway
         self.epochs = epochs
+        self.date = date
         
     @classmethod
     def from_dict(cls, data):
@@ -75,99 +77,54 @@ logging.basicConfig(
 )
 
 def signal_handler(signal, frame):
+    kill_dash()
     stop_participants()
     sys.exit(0)
+    
+def kill_dash():
+    try:
+        with open("dash.txt", "r") as f:
+            pid = int(f.read().strip())
+
+        os.kill(pid, signal.SIGTERM)
+        print(f"Process {pid} terminated.")
+
+        os.remove("dash.txt")
+        print("PID file deleted.")
+    
+    except FileNotFoundError:
+        print("PID file not found.")
+    except ProcessLookupError:
+        print("The process does not exist or has already been terminated.")
+    except Exception as e:
+        print(f"Error while trying to terminate the process: {e}")
     
 signal.signal(signal.SIGINT, signal_handler)
 
 # Initialize FastAPI app
 app = FastAPI()
 
-@app.get("/")
+from frontend import frontend
+
+@app.get("/api")
 async def read_root():
     return {"message": "Welcome to the ROBUST Controller API"}
 
-@app.post("/robust/run/scenario")
+@app.post("/api/robust/run/scenario")
 async def set_scenario(request: Request):
     scenario = await request.json()
+    date = scenario.get("date")
     try:
         with open(scenario_path, "w") as f:
             json.dump(scenario, f, indent=4)
             
-        date = await create_configs()
+        await create_configs(date)
         return {"message": "Scenario running successfully", "scenario": date}
     except Exception as e:
         return {"error": f"Failed to run scenario: {str(e)}"}
-    
-@app.get("/robust/models")
-async def get_models(scenario_date: str, participant_id: Optional[int] = None, round: Optional[int] = None):
-    model_path = os.path.join(models_dir, scenario_date)
 
-    if not os.path.exists(model_path):
-        return JSONResponse(content={"error": "Scenario not found"}, status_code=404)
-
-    files_to_return = []
-    
-    for file in os.listdir(model_path):
-        if participant_id is not None and round is not None:
-            if file == f"participant_{participant_id}_round_{round}_model.pth":
-                return FileResponse(os.path.join(model_path, file), media_type="application/octet-stream", filename=file)
-        elif participant_id is not None and f"participant_{participant_id}_" in file:
-            files_to_return.append(file)
-        elif round is not None and f"_round_{round}_" in file:
-            files_to_return.append(file)
-        elif participant_id is None and round is None:
-            files_to_return.append(file)
-
-    if not files_to_return:
-        return JSONResponse(content={"error": "No models found"}, status_code=404)
-
-    if len(files_to_return) == 1:
-        return FileResponse(os.path.join(model_path, files_to_return[0]), media_type="application/octet-stream", filename=files_to_return[0])
-    
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for file in files_to_return:
-            zip_file.write(os.path.join(model_path, file), arcname=file)
-    
-    zip_buffer.seek(0)
-    
-    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": f"attachment; filename=models.zip"})
-
-@app.get("/robust/metrics")
-async def get_metrics(scenario_date: str, participant_id: Optional[int] = None):
-    metrics_path = os.path.join(log_dir, scenario_date, "metrics")
-
-    if not os.path.exists(metrics_path):
-        return JSONResponse(content={"error": "Scenario not found"}, status_code=404)
-
-    if participant_id is not None:
-        metrics_file = os.path.join(metrics_path, f"participant_{participant_id}", "metrics.csv")
-        if os.path.exists(metrics_file):
-            return FileResponse(metrics_file, media_type="application/octet-stream", filename=f"metrics_participant_{participant_id}.csv")
-        return JSONResponse(content={"error": "Metrics not found for participant"}, status_code=404)
-    
-    files_to_return = []
-    for participant_folder in os.listdir(metrics_path):
-        participant_metrics = os.path.join(metrics_path, participant_folder, "metrics.csv")
-        if os.path.exists(participant_metrics):
-            files_to_return.append((participant_folder, participant_metrics))
-
-    if not files_to_return:
-        return JSONResponse(content={"error": "No metrics found"}, status_code=404)
-
-    if len(files_to_return) == 1:
-        return FileResponse(files_to_return[0][1], media_type="application/octet-stream", filename=f"metrics_{files_to_return[0][0]}.csv")
-
-    zip_buffer = io.BytesIO()
-    with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for participant_folder, file_path in files_to_return:
-            zip_file.write(file_path, arcname=f"metrics_{participant_folder}.csv")
-    
-    zip_buffer.seek(0)
-
-    return StreamingResponse(zip_buffer, media_type="application/zip", headers={"Content-Disposition": "attachment; filename=all_metrics.zip"})
-    
+app.mount("/", frontend.frontend)
+     
 # Basics
 def stop_participants():
         if sys.platform == "win32":
@@ -294,8 +251,11 @@ def get_neighbors(scenario, topology, idx):
             neighbors_data_string += " "
     return neighbors_data_string
 
-async def create_configs():    
-    date = datetime.strftime(datetime.now(), "%d_%m_%Y_%H_%M_%S")
+async def create_configs(date):    
+    with open(scenario_path, "r", encoding="utf-8") as file:
+        scenario_json = json.load(file)
+    
+    date = scenario_json["date"]    
     config_dir = os.path.join(os.getcwd(), "robust", "config", date)
     log_dir = os.path.join(os.getcwd(), "robust", "logs", date)
     models_dir = os.path.join(os.getcwd(), "robust", "models", date)
@@ -305,9 +265,6 @@ async def create_configs():
     os.makedirs(models_dir, exist_ok=True)
     
     logging.info("configs created")
-
-    with open(scenario_path, "r", encoding="utf-8") as file:
-        scenario_json = json.load(file)
         
     scenario = Scenario.from_dict(scenario_json)
     topology = gen_topology(scenario)
@@ -336,6 +293,7 @@ async def create_configs():
         participant_config["device_args"]["role"] = node_config["role"]
         participant_config["device_args"]["proxy"] = node_config["proxy"]
         participant_config["device_args"]["malicious"] = node_config["malicious"]
+        participant_config["device_args"]["attack"] = node_config["attack"]
         participant_config["scenario_args"]["n_nodes"] = int(scenario.n_nodes)
         participant_config["scenario_args"]["rounds"] = int(scenario.rounds)
         participant_config["data_args"]["dataset"] = scenario.dataset

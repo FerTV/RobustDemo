@@ -2,7 +2,7 @@ import logging
 import threading
 
 
-
+from functools import partial
 from role import Role
 from utils.observer import Events, Observable
 
@@ -214,6 +214,22 @@ class Aggregator(threading.Thread, Observable):
                 self.__aggregation_lock.release()
         except threading.ThreadError:
             pass
+        
+    def create_malicious_aggregator(self, aggregator, attack):
+        # It creates a partial function aggregate that wraps the aggregate method of the original aggregator.
+        aggregate = partial(aggregator.aggregate)  # None is the self (not used)
+
+        # This function will replace the original aggregate method of the aggregator.
+        def malicious_aggregate(self, models):
+            accum = aggregate(models)
+            logging.info(f"malicious_aggregate | original aggregation result={accum}")
+            if models is not None:
+                accum = attack(accum)
+                logging.info(f"malicious_aggregate | attack aggregation result={accum}")
+            return accum
+
+        aggregator.aggregate = partial(malicious_aggregate, aggregator)
+        return aggregator
 
     def clear(self):
         """

@@ -7,6 +7,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
+            "attack": "No attack",
             "proxy": false,
             "start": true
         },
@@ -16,6 +17,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
+            "attack": "No attack",
             "proxy": false,
             "start": false
         },
@@ -25,6 +27,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
+            "attack": "No attack",
             "proxy": false,
             "start": false
         }
@@ -34,9 +37,10 @@
     "iid": false,
     "model": "MLP",
     "agg_algorithm": "FedAvg",
-    "rounds": "10",
+    "rounds": "5",
     "accelerator": "cpu",
     "network_subnet": "192.168.50.0/24",
     "network_gateway": "192.168.50.1",
-    "epochs": "1"
+    "epochs": "1",
+    "date": "05_05_2025_17_25_58"
 }

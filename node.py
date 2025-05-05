@@ -35,6 +35,7 @@ import time
 from lightning.pytorch.loggers import WandbLogger, CSVLogger
 
 from base_node import BaseNode
+from attacks import create_attack
 from communication_protocol import CommunicationProtocol
 from config import Config
 from pytorch.learning.aggregators.fedavg import FedAvg
@@ -109,6 +110,12 @@ class Node(BaseNode):
         # Aggregator
         if self.config.participant["aggregator_args"]["algorithm"] == "FedAvg":
             self.aggregator = FedAvg(node_name=self.get_name(), config=self.config)
+            
+        # Malicious
+        if self.config.participant["device_args"]["malicious"]:
+            self.attack = create_attack(config.participant["device_args"]["attack"])
+        else:
+            self.attack = None
 
         self.aggregator.add_observer(self)
 
@@ -399,6 +406,10 @@ class Node(BaseNode):
             # Full connect train set
             if self.round is not None:
                 self.__connect_and_set_aggregator()
+                
+            if self.attack:
+                logging.info(f"Changing aggregation function maliciously...")
+                self.aggregator.create_malicious_aggregator(self.aggregator, self.attack)
 
             # Evaluate and send metrics
             if self.round is not None:

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>JSON Generator</title>
+    <style>
+        .node-container {
+            display: flex;
+            flex-wrap: nowrap;
+            gap: 20px;
+            overflow-x: auto;
+            padding: 10px;
+            border: 1px solid #ccc;
+            max-width: 100%;
+        }
+        .node-box {
+            border: 1px solid #ccc;
+            padding: 10px;
+            width: 300px;
+            flex: 0 0 auto;
+        }
+        #dash-frame {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body style="font-family: Arial, sans-serif;">
+    <div style="display: flex; gap: 50px;">
+        <form id="scenarioForm" style="flex: 1;">
+            <h1>Scenario Configuration</h1>
+            <label>Topology:
+                <input type="text" name="topology" value="Fully" required>
+            </label><br><br>
+            <label>Dataset:
+                <input type="text" name="dataset" value="MNIST" required>
+            </label><br><br>
+            <label>IID:
+                <input type="checkbox" name="iid">
+            </label><br><br>
+            <label>Model:
+                <input type="text" name="model" value="MLP" required>
+            </label><br><br>
+            <label>Aggregation Algorithm:
+                <input type="text" name="agg_algorithm" value="FedAvg" required>
+            </label><br><br>
+            <label>Rounds:
+                <input type="number" name="rounds" value="5" required>
+            </label><br><br>
+            <label>Epochs:
+                <input type="number" name="epochs" value="1" required>
+            </label><br><br>
+            <button type="button" onclick="runScenario()">Run Scenario</button>
+        </form>
+        <div style="flex: 1;">
+            <h2>Node Configuration</h2>
+            <div id="nodes" class="node-container"></div>
+            <br>
+            <button type="button" onclick="addNode()">Add Node</button>
+        </div>
+    </div>
+    <h2>Result:</h2>
+    <pre id="output"></pre>
+    <h2>Metrics Dashboard</h2>
+    <iframe id="dash-frame" src="http://localhost:8000/dash/" title="Metrics Dashboard"></iframe>
+    <script>
+        let activeNodes = [];
+        function generateIP(index) {
+            return "192.168.50." + (2 + index);
+        }
+        function updateNodeValuesFromDOM() {
+            activeNodes.forEach((node, index) => {
+                node.role = document.querySelector(`[name="role-${index}"]`)?.value || "aggregator";
+                node.malicious = document.querySelector(`[name="malicious-${index}"]`)?.checked || false;
+                node.attack = document.querySelector(`[name="attack-${index}"]`)?.value || "No attack";
+                node.proxy = document.querySelector(`[name="proxy-${index}"]`)?.checked || false;
+                node.start = document.querySelector(`[name="start-${index}"]`)?.checked || false;
+            });
+        }
+        function addNode() {
+            updateNodeValuesFromDOM();
+            const nodeId = activeNodes.length;
+            const ip = generateIP(nodeId);
+            const port = "45000";
+            activeNodes.push({
+                id: nodeId,
+                ip: ip,
+                port: port,
+                role: "aggregator",
+                malicious: false,
+                attack: "No attack",
+                proxy: false,
+                start: false
+            });
+            renderNodes();
+        }
+        function removeNode(index) {
+            updateNodeValuesFromDOM();
+            activeNodes.splice(index, 1);
+            activeNodes = activeNodes.map((node, i) => ({
+                ...node,
+                id: i,
+                ip: generateIP(i),
+                port: "45000"
+            }));
+            renderNodes();
+        }
+        function renderNodes() {
+            const nodesDiv = document.getElementById('nodes');
+            nodesDiv.innerHTML = '';
+            activeNodes.forEach((node, index) => {
+                const nodeDiv = document.createElement('div');
+                nodeDiv.className = 'node-box';
+                nodeDiv.id = 'node-' + index;
+                nodeDiv.innerHTML = `
+                    <h3>Node ${index}</h3>
+                    <label>Role:
+                        <input type="text" name="role-${index}" value="${node.role}" required>
+                    </label><br>
+                    <label>Malicious:
+                        <input type="checkbox" name="malicious-${index}" ${node.malicious ? 'checked' : ''}>
+                    </label><br>
+                    <label>Attack:
+                        <input type="text" name="attack-${index}" value="${node.attack}">
+                    </label><br>
+                    <label>Proxy:
+                        <input type="checkbox" name="proxy-${index}" ${node.proxy ? 'checked' : ''}>
+                    </label><br>
+                    <label>Start:
+                        <input type="checkbox" name="start-${index}" ${node.start ? 'checked' : ''}>
+                    </label><br>
+                    <button type="button" onclick="removeNode(${index})">Remove Node</button>
+                `;
+                nodesDiv.appendChild(nodeDiv);
+            });
+        }
+        async function runScenario() {
+            const form = document.forms['scenarioForm'];
+            updateNodeValuesFromDOM();
+            const result = {
+                topology: form['topology'].value,
+                nodes: {},
+                n_nodes: activeNodes.length,
+                dataset: form['dataset'].value,
+                iid: form['iid'].checked,
+                model: form['model'].value,
+                agg_algorithm: form['agg_algorithm'].value,
+                rounds: form['rounds'].value,
+                accelerator: "cpu",
+                network_subnet: "192.168.50.0/24",
+                network_gateway: "192.168.50.1",
+                epochs: form['epochs'].value
+            };
+            activeNodes.forEach((node, i) => {
+                result.nodes[i] = {
+                    id: i,
+                    ip: node.ip,
+                    port: node.port,
+                    role: node.role,
+                    malicious: node.malicious,
+                    attack: node.attack,
+                    proxy: node.proxy,
+                    start: node.start
+                };
+            });
+            document.getElementById('output').textContent = JSON.stringify(result, null, 4);
+            try {
+                const response = await fetch('/robust/run/scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(result)
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                console.log('Response:', data);
+                alert('Scenario sent successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to send scenario');
+            }
+        }
+    </script>
+</body>
+</html>
