@@ -136,6 +136,17 @@
                 nodesDiv.appendChild(nodeDiv);
             });
         }
+        function hardReloadIframe() {
+            const oldFrame = document.getElementById('dash-frame');
+            const newFrame = document.createElement('iframe');
+            newFrame.id = 'dash-frame';
+            newFrame.src = 'http://localhost:8050/dash/';
+            newFrame.title = 'Metrics Dashboard';
+            newFrame.style.width = '100%';
+            newFrame.style.height = '500px';
+            newFrame.style.border = '1px solid #ccc';
+            oldFrame.replaceWith(newFrame);
+        }
         async function runScenario() {
             const form = document.forms['scenarioForm'];
             updateNodeValuesFromDOM();
@@ -176,6 +187,7 @@
                 const data = await response.json();
                 console.log('Response:', data);
                 alert('Scenario sent successfully');
+                hardReloadIframe();
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to send scenario');

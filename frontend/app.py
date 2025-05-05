@@ -21,8 +21,18 @@ app = Dash(
 colors = {'background': '#111111', 'text': '#7FDBFF'}
 
 def get_csv_paths():
-    # Devuelve las rutas de los archivos CSV ordenadas
-    return sorted(glob.glob(f"../robust/logs/{date}/test/participant_*/metrics.csv"))
+    root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    base_path = os.path.join(root_path, "robust", "logs", date, "test")
+    csv_paths = []
+    if not os.path.exists(base_path):
+        return []
+    for participant in sorted(os.listdir(base_path)):
+        participant_dir = os.path.join(base_path, participant)
+        if os.path.isdir(participant_dir):
+            csv_file = os.path.join(participant_dir, "metrics.csv")
+            if os.path.isfile(csv_file):
+                csv_paths.append(csv_file)
+    return csv_paths
 
 def create_figure_from_csv(path):
     try:
@@ -62,8 +72,6 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
 def update_graphs(n):
     # Obtener las rutas de los archivos CSV
     paths = get_csv_paths()
-    
-    print("[FER] update_graphs")
     
     if not paths:
         # Si no hay archivos CSV, mostramos el mensaje de "Esperando datos"
