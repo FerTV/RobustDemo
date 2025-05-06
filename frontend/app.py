@@ -38,7 +38,7 @@ def create_figure_from_csv(path):
     try:
         df = pd.read_csv(path)
         df["Round"] = df.index
-        df_long = df[["Round", "Test/F1Score", "TestEpoch/F1Score"]].melt(
+        df_long = df[["Round", "TestEpoch/F1Score"]].melt(
             id_vars="Round", var_name="Type", value_name="F1Score"
         )
         fig = px.line(

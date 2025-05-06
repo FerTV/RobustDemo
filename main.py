@@ -123,6 +123,15 @@ async def set_scenario(request: Request):
     except Exception as e:
         return {"error": f"Failed to run scenario: {str(e)}"}
 
+@app.post("/api/robust/stop/scenario")
+async def stop_scenario(request: Request):
+    try:
+        kill_dash()
+        stop_participants()
+        return {"message": "Scenario stopped successfully"}
+    except Exception as e:
+        return {"error": f"Failed to stop scenario: {str(e)}"}
+
 app.mount("/", frontend.frontend)
      
 # Basics
@@ -291,8 +300,6 @@ async def create_configs(date):
         participant_config['device_args']['uid'] = hashlib.sha1((str(participant_config["network_args"]["ip"]) + str(participant_config["network_args"]["port"])).encode()).hexdigest()
         participant_config["device_args"]["start"] = node_config["start"]
         participant_config["device_args"]["role"] = node_config["role"]
-        participant_config["device_args"]["proxy"] = node_config["proxy"]
-        participant_config["device_args"]["malicious"] = node_config["malicious"]
         participant_config["device_args"]["attack"] = node_config["attack"]
         participant_config["scenario_args"]["n_nodes"] = int(scenario.n_nodes)
         participant_config["scenario_args"]["rounds"] = int(scenario.rounds)

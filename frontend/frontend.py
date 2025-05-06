@@ -93,6 +93,15 @@ async def set_scenario(request: Request):
        )
     return JSONResponse(content=resp.json())
 
+
+@frontend.post("/robust/stop/scenario")
+async def stop_scenario(): 
+    async with httpx.AsyncClient() as client:
+       resp = await client.post(
+           "http://127.0.0.1:8000/api/robust/stop/scenario"
+       )
+    return JSONResponse(content=resp.json())
+
 @frontend.get("/robust/models")
 async def get_models(
     scenario_date: str,

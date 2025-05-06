@@ -112,7 +112,7 @@ class Node(BaseNode):
             self.aggregator = FedAvg(node_name=self.get_name(), config=self.config)
             
         # Malicious
-        if self.config.participant["device_args"]["malicious"]:
+        if self.config.participant["device_args"]["attack"] != "No Attack":
             self.attack = create_attack(config.participant["device_args"]["attack"])
         else:
             self.attack = None

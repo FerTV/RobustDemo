@@ -7,7 +7,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
-            "attack": "No attack",
+            "attack": "No Attack",
             "proxy": false,
             "start": true
         },
@@ -17,7 +17,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
-            "attack": "No attack",
+            "attack": "No Attack",
             "proxy": false,
             "start": false
         },
@@ -27,7 +27,7 @@
             "port": "45000",
             "role": "aggregator",
             "malicious": false,
-            "attack": "No attack",
+            "attack": "No Attack",
             "proxy": false,
             "start": false
         }
@@ -42,5 +42,5 @@
     "network_subnet": "192.168.50.0/24",
     "network_gateway": "192.168.50.1",
     "epochs": "1",
-    "date": "05_05_2025_18_14_15"
+    "date": "06_05_2025_11_32_26"
 }

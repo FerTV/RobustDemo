@@ -31,21 +31,27 @@
     <div style="display: flex; gap: 50px;">
         <form id="scenarioForm" style="flex: 1;">
             <h1>Scenario Configuration</h1>
-            <label>Topology:
-                <input type="text" name="topology" value="Fully" required>
-            </label><br><br>
-            <label>Dataset:
-                <input type="text" name="dataset" value="MNIST" required>
-            </label><br><br>
+            <label for="topology">Topology:</label>
+            <select name="topology" id="topology" required>
+              <option value="Fully">Fully</option>
+              <option value="Ring">Ring</option>
+              <option value="Random">Random</option>
+            </select><br><br>
+            <label for="dataset">Dataset:</label>
+            <select name="dataset" id="dataset" required>
+                <option value="MNIST">MNIST</option>
+            </select><br><br>
             <label>IID:
                 <input type="checkbox" name="iid">
             </label><br><br>
-            <label>Model:
-                <input type="text" name="model" value="MLP" required>
-            </label><br><br>
-            <label>Aggregation Algorithm:
-                <input type="text" name="agg_algorithm" value="FedAvg" required>
-            </label><br><br>
+            <label for="model">Model:</label>
+            <select name="model" id="model" required>
+                <option value="MLP">MLP</option>
+            </select><br><br>
+            <label for="agg_algorithm">Aggregation Algorithm:</label>
+            <select name="agg_algorithm" id="agg_algorithm" required>
+                <option value="FedAvg">FedAvg</option>
+            </select><br><br>
             <label>Rounds:
                 <input type="number" name="rounds" value="5" required>
             </label><br><br>
@@ -53,6 +59,7 @@
                 <input type="number" name="epochs" value="1" required>
             </label><br><br>
             <button type="button" onclick="runScenario()">Run Scenario</button>
+            <button type="button" onclick="stopScenario()">Stop Scenario</button>
         </form>
         <div style="flex: 1;">
             <h2>Node Configuration</h2>
@@ -61,8 +68,6 @@
             <button type="button" onclick="addNode()">Add Node</button>
         </div>
     </div>
-    <h2>Result:</h2>
-    <pre id="output"></pre>
     <h2>Metrics Dashboard</h2>
     <iframe id="dash-frame" src="http://localhost:8000/dash/" title="Metrics Dashboard"></iframe>
     <script>
@@ -89,9 +94,7 @@
                 ip: ip,
                 port: port,
                 role: "aggregator",
-                malicious: false,
                 attack: "No attack",
-                proxy: false,
                 start: false
             });
             renderNodes();
@@ -116,21 +119,19 @@
                 nodeDiv.id = 'node-' + index;
                 nodeDiv.innerHTML = `
                     <h3>Node ${index}</h3>
-                    <label>Role:
-                        <input type="text" name="role-${index}" value="${node.role}" required>
-                    </label><br>
-                    <label>Malicious:
-                        <input type="checkbox" name="malicious-${index}" ${node.malicious ? 'checked' : ''}>
-                    </label><br>
-                    <label>Attack:
-                        <input type="text" name="attack-${index}" value="${node.attack}">
-                    </label><br>
-                    <label>Proxy:
-                        <input type="checkbox" name="proxy-${index}" ${node.proxy ? 'checked' : ''}>
-                    </label><br>
+                    <label for="role-${index}">Role:</label>
+                    <select name="role-${index}" id="role-${index}" required>
+                      <option value="aggregator"${node.role === 'aggregator' ? ' selected' : ''}>Aggregator</option>
+                      <option value="proxy"${node.role === 'proxy' ? ' selected' : ''}>Proxy</option>
+                    </select><br><br>
+                    <label for="attack-${index}">Attack:</label>
+                    <select name="attack-${index}" id="attack-${index}">
+                      <option value="No Attack"${node.attack === 'No Attack' ? ' selected' : ''}>No Attack</option>
+                      <option value="Model Poisoning"${node.attack === 'Model Poisoning' ? ' selected' : ''}>Model Poisoning</option>
+                    </select><br><br>
                     <label>Start:
                         <input type="checkbox" name="start-${index}" ${node.start ? 'checked' : ''}>
-                    </label><br>
+                    </label><br><br>
                     <button type="button" onclick="removeNode(${index})">Remove Node</button>
                 `;
                 nodesDiv.appendChild(nodeDiv);
@@ -176,7 +177,6 @@
                     start: node.start
                 };
             });
-            document.getElementById('output').textContent = JSON.stringify(result, null, 4);
             try {
                 const response = await fetch('/robust/run/scenario', {
                     method: 'POST',
@@ -191,6 +191,22 @@
             } catch (error) {
                 console.error('Error:', error);
                 alert('Failed to send scenario');
+            }
+        }
+        async function stopScenario() {
+            try {
+                const response = await fetch('/robust/stop/scenario', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+                const data = await response.json();
+                console.log('Response:', data);
+                alert('Scenario stopped successfully');
+                location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to stop scenario');
             }
         }
     </script>
