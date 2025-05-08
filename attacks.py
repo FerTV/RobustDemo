@@ -19,7 +19,7 @@ def create_attack(attack_name):
     Function to create an attack object from its name.
     """
     if attack_name == "Model Poisoning":
-        return NoiseInjectionAttack()
+        return ModelPoisoning()
     elif attack_name == "SwappingWeightsAttack":
         return SwappingWeightsAttack()
     else:
@@ -38,9 +38,9 @@ class Attack:
         """
         raise NotImplementedError
 
-class NoiseInjectionAttack(Attack):
+class ModelPoisoning(Attack):
     """
-    Function to perform noise injection attack on the received weights.
+    Function to perform model poisoning attack on the received weights.
     """
 
     def __init__(self, strength=10000, perc=1.0):
@@ -49,7 +49,7 @@ class NoiseInjectionAttack(Attack):
         self.perc = perc
 
     def attack(self, received_weights):
-        logging.info("[NoiseInjectionAttack] Performing noise injection attack")
+        logging.info("[ModelPoisoning] Performing noise injection attack")
         lkeys = list(received_weights.keys())
         for k in lkeys:
             logging.info(f"Layer noised: {k}")
