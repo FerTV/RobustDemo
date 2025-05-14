@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU General Public License
 # along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+import csv
 import logging
 import os
 from datetime import datetime, timedelta
@@ -32,10 +33,10 @@ import random
 import threading
 import time
 
-from lightning.pytorch.loggers import WandbLogger, CSVLogger
+from lightning.pytorch.loggers import CSVLogger
 
 from base_node import BaseNode
-from attacks import create_attack
+from attacks import create_attack, labelFlipping
 from communication_protocol import CommunicationProtocol
 from config import Config
 from pytorch.learning.aggregators.fedavg import FedAvg
@@ -100,10 +101,13 @@ class Node(BaseNode):
         self.__initial_neighbors = []
         self.__start_thread_lock = threading.Lock()
 
+        #Reporter
+        self.__start_reporter_thread()
+
         # Learner and learner logger
         logging.info("[NODE] Tracking CSV enabled")
-        csvlogger = CSVLogger(f"{self.log_dir}", name="metrics", version=f"participant_{self.idx}")
-        self.learner = learner(model, data, config=self.config, logger=csvlogger)
+        self.csvlogger = CSVLogger(f"{self.log_dir}", name="metrics", version=f"participant_{self.idx}")
+        self.learner = learner(model, data, config=self.config, logger=self.csvlogger)
 
         logging.info("[NODE] Role: " + str(self.config.participant["device_args"]["role"]))
 
@@ -112,7 +116,7 @@ class Node(BaseNode):
             self.aggregator = FedAvg(node_name=self.get_name(), config=self.config)
             
         # Malicious
-        if self.config.participant["device_args"]["attack"] != "No Attack":
+        if self.config.participant["device_args"]["attack"] == "Model Poisoning":
             self.attack = create_attack(config.participant["device_args"]["attack"])
         else:
             self.attack = None
@@ -139,6 +143,72 @@ class Node(BaseNode):
         # Grace period to wait for last transmission using Aggregator thread
         self.__wait_finish_experiment_lock = threading.Lock()
         self.__wait_finish_experiment_lock.acquire()
+
+    #####################
+    #      Reporter     #
+    #####################      
+    
+    def __start_reporter_thread(self):
+        learning_thread = threading.Thread(
+            target=self.__start_reporter
+        )
+        learning_thread.name = "reporter_thread-" + self.addr
+        learning_thread.daemon = True
+        logging.info(f"({self.addr}) Starting reporter thread")
+        learning_thread.start()
+        
+    def __start_reporter(self):
+        while True:
+            time.sleep(self.config.participant["REPORT_FREC"])
+            self.__report_resources()
+    
+    def __report_resources(self):
+        step = int((datetime.now() - datetime.strptime(self.config.participant['tracking_args']['start_date'],
+                                                       "%d_%m_%Y_%H_%M_%S")).total_seconds())
+        import sys
+        import psutil
+    
+        cpu_percent = psutil.cpu_percent()
+        cpu_temp = 0
+        try:
+            if sys.platform == "linux":
+                cpu_temp = psutil.sensors_temperatures()['coretemp'][0].current
+        except Exception:
+            pass
+        
+        ram_percent = psutil.virtual_memory().percent
+        disk_percent = psutil.disk_usage("/").percent
+        net_io_counters = psutil.net_io_counters()
+        bytes_sent = net_io_counters.bytes_sent
+        bytes_recv = net_io_counters.bytes_recv
+        packets_sent = net_io_counters.packets_sent
+        packets_recv = net_io_counters.packets_recv
+        uptime = psutil.boot_time()
+    
+        metrics = {
+            "step": step,
+            "Resources/CPU_percent": cpu_percent,
+            "Resources/CPU_temp": cpu_temp,
+            "Resources/RAM_percent": ram_percent,
+            "Resources/Disk_percent": disk_percent,
+            "Resources/Bytes_sent": bytes_sent,
+            "Resources/Bytes_recv": bytes_recv,
+            "Resources/Packets_sent": packets_sent,
+            "Resources/Packets_recv": packets_recv,
+            "Resources/Uptime": uptime
+        }
+    
+        # Escribir en metrics.csv manualmente
+        log_dir = os.path.join(self.csvlogger.log_dir)
+        os.makedirs(log_dir, exist_ok=True)
+        metrics_file = os.path.join(log_dir, "metrics.csv")
+    
+        file_exists = os.path.isfile(metrics_file)
+        with open(metrics_file, mode="a", newline="") as f:
+            writer = csv.DictWriter(f, fieldnames=metrics.keys())
+            if not file_exists:
+                writer.writeheader()
+            writer.writerow(metrics)
 
     #########################
     #    Node Management    #
@@ -335,6 +405,7 @@ class Node(BaseNode):
                         decoded_model,
                         contributors,
                         weight,
+                        *_,
                     ) = self.learner.decode_parameters(m)
                     logging.info("[NODE.add_model] Model received from {} --using--> {} in the other node | Now I add the model using self.aggregator.add_model()".format(contributors, '__gossip_model_diffusion' if contributors is None and weight is None else '__gossip_model_aggregation'))
                     if self.learner.check_parameters(decoded_model):
@@ -407,7 +478,7 @@ class Node(BaseNode):
             if self.round is not None:
                 self.__connect_and_set_aggregator()
                 
-            if self.attack:
+            if self.config.participant["device_args"]["attack"] == "Model Poisoning":
                 logging.info(f"Changing aggregation function maliciously...")
                 self.aggregator.create_malicious_aggregator(self.aggregator, self.attack)
 
@@ -545,7 +616,13 @@ class Node(BaseNode):
     def __train(self):
         logging.info("[NODE.__train] Start training...")
         print("[NODE.__train] Start training...")
-        self.learner.fit()
+        self.learner.fit(
+            self.config.participant["device_args"]["attack"] == "Label Flipping",
+            self.config.participant["adversarial_args"]["poisoned_sample_percent"], 
+            str(self.config.participant["adversarial_args"]["targeted"]),
+            self.config.participant["adversarial_args"]["target_label"],
+            self.config.participant["adversarial_args"]["target_changed_label"]
+            )
         logging.info("[NODE.__train] Finish training...")
         print("[NODE.__train] Finish training...")
 

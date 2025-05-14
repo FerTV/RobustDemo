@@ -1,3 +1,5 @@
+import copy
+import random
 from typing import Any
 import torch
 import numpy as np
@@ -5,6 +7,9 @@ from torchmetrics.functional import pairwise_cosine_similarity
 from copy import deepcopy
 import logging
 
+logging.getLogger("requests").setLevel(logging.WARNING)
+logging.getLogger("urllib3").setLevel(logging.WARNING)
+logging.getLogger("fsspec").setLevel(logging.WARNING)
 
 # To take into account:
 # - Malicious nodes do not train on their own data
@@ -20,8 +25,6 @@ def create_attack(attack_name):
     """
     if attack_name == "Model Poisoning":
         return ModelPoisoning()
-    elif attack_name == "SwappingWeightsAttack":
-        return SwappingWeightsAttack()
     else:
         raise ValueError(f"Attack {attack_name} not supported")
 
@@ -57,52 +60,37 @@ class ModelPoisoning(Attack):
         return received_weights
 
 
-class SwappingWeightsAttack(Attack):
+def labelFlipping(dataset, indices, poisoned_persent=0, targeted=False, target_label=4, target_changed_label=7):
     """
-    Function to perform swapping weights attack on the received weights. Note that this
-    attack performance is not consistent due to its stochasticity.
-
-    Warning: depending on the layer the code may not work (due to reshaping in between),
-    or it may be slow (scales quadratically with the layer size).
-    Do not apply to last layer, as it would make the attack detectable (high loss
-    on malicious node).
+    select flipping_persent of labels, and change them to random values.
+    Args:
+        dataset: the dataset of training data, torch.util.data.dataset like.
+        indices: Indices of subsets, list like.
+        flipping_persent: The ratio of labels want to change, float like.
     """
+    logging.info("[LabelFlipping] Performing label flipping attack")
+    new_dataset = copy.deepcopy(dataset)
+    if not isinstance(new_dataset.targets, np.ndarray):
+        new_dataset.targets = np.array(new_dataset.targets)
+    else:
+        new_dataset.targets = new_dataset.targets.copy()
 
-    def __init__(self, layer_idx=0):
-        super().__init__()
-        self.layer_idx = layer_idx
-
-    def attack(self, received_weights):
-        logging.info("[SwappingWeightsAttack] Performing swapping weights attack")
-        lkeys = list(received_weights.keys())
-        wm = received_weights[lkeys[self.layer_idx]]
-
-        # Compute similarity matrix
-        sm = torch.zeros((wm.shape[0], wm.shape[0]))
-        for j in range(wm.shape[0]):
-            sm[j] = pairwise_cosine_similarity(wm[j].reshape(1, -1), wm.reshape(wm.shape[0], -1))
-
-        # Check rows/cols where greedy approach is optimal
-        nsort = np.full(sm.shape[0], -1)
-        rows = []
-        for j in range(sm.shape[0]):
-            k = torch.argmin(sm[j])
-            if torch.argmin(sm[:, k]) == j:
-                nsort[j] = k
-                rows.append(j)
-        not_rows = np.array([i for i in range(sm.shape[0]) if i not in rows])
-
-        # Ensure the rest of the rows are fully permuted (not optimal, but good enough)
-        nrs = deepcopy(not_rows)
-        nrs = np.random.permutation(nrs)
-        while np.any(nrs == not_rows):
-            nrs = np.random.permutation(nrs)
-        nsort[not_rows] = nrs
-        nsort = torch.tensor(nsort)
-
-        # Apply permutation to weights
-        received_weights[lkeys[self.layer_idx]] = received_weights[lkeys[self.layer_idx]][nsort]
-        received_weights[lkeys[self.layer_idx + 1]] = received_weights[lkeys[self.layer_idx + 1]][nsort]
-        if self.layer_idx + 2 < len(lkeys):
-            received_weights[lkeys[self.layer_idx + 2]] = received_weights[lkeys[self.layer_idx + 2]][:, nsort]
-        return received_weights
+    if not targeted:
+        num_indices = len(indices)
+        num_flipped = int(poisoned_persent * num_indices)
+        if num_indices == 0 or num_flipped > num_indices:
+            return
+        flipped_indices = random.sample(indices, num_flipped)
+        class_list = list(set(new_dataset.targets.tolist()))
+        for i in flipped_indices:
+            current_label = new_dataset.targets[i]
+            new_label = random.choice(class_list)
+            while new_label == current_label:
+                new_label = random.choice(class_list)
+            new_dataset.targets[i] = new_label
+    else:
+        for i in indices:
+            if int(new_dataset.targets[i]) == target_label:
+                new_dataset.targets[i] = target_changed_label
+    # logging.info(f"[{self.__class__.__name__}] First 20 labels after flipping: {new_dataset.targets[:20]}")
+    return new_dataset

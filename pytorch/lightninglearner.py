@@ -1,34 +1,25 @@
-#
-# This file is an adaptation and extension of the p2pfl library (https://pypi.org/project/p2pfl/).
-# Refer to the LICENSE file for licensing information.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
-
 import logging
 import os
 import pickle
 from collections import OrderedDict
+import random
+import traceback
+import hashlib
+import numpy as np
+import io
+import gzip
 
+from lightning.pytorch.loggers import CSVLogger
+from attacks import labelFlipping
+from pytorch.learning.exceptions import DecodingParamsError, ModelNotMatchingError
+from pytorch.learning.learner import NodeLearner
 import torch
 from lightning import Trainer
 from lightning.pytorch.callbacks import RichProgressBar, RichModelSummary
 from lightning.pytorch.callbacks.progress.rich_progress import RichProgressBarTheme
-from lightning.pytorch.loggers import CSVLogger
+import copy
 
-from pytorch.learning.exceptions import DecodingParamsError, ModelNotMatchingError
-from pytorch.learning.learner import NodeLearner
-
+from torch.nn import functional as F
 
 ###########################
 #    LightningLearner     #
@@ -37,20 +28,25 @@ from pytorch.learning.learner import NodeLearner
 
 class LightningLearner(NodeLearner):
     """
-    PyTorch Lightning-based Learner.
+    Learner with PyTorch Lightning.
 
-    Attributes:
-        model: Model to be trained.
-        data: Data for train/val/test.
+    Atributes:
+        model: Model to train.
+        data: Data to train the model.
         epochs: Number of epochs to train.
-        train_logger, val_logger, test_logger: Separate CSVLoggers.
+        logger: Logger.
     """
 
     def __init__(self, model, data, config=None, logger=None):
+        # logging.info("[Learner] Compiling model... (BETA)")
+        # self.model = torch.compile(model, mode="reduce-overhead")
         self.model = model
-        # self.model = torch.compile(model)  # PyTorch 2.0 if desired
         self.data = data
         self.config = config
+        self.logger = logger
+        self.__trainer = None
+        self.epochs = 1
+        logging.getLogger("lightning.pytorch").setLevel(logging.INFO)
 
         # If a single CSVLogger is provided, split it into train/val/test
         if isinstance(logger, CSVLogger):
@@ -65,13 +61,27 @@ class LightningLearner(NodeLearner):
             self.val_logger   = logger if isinstance(logger, list) and len(logger) >= 2 else None
             self.test_logger  = logger if isinstance(logger, list) and len(logger) >= 3 else None
 
-        self.epochs = 1
-        logging.getLogger("lightning.pytorch").setLevel(logging.WARNING)
-
-        # Federated Learning information
+        # FL information
         self.round = 0
-        self.local_step = 0
-        self.global_step = 0
+        
+        self.fix_randomness()
+        # self.logger.log_metrics({"Round": self.round}, step=self.logger.global_step)
+        
+
+    def fix_randomness(self):
+        seed = self.config.participant["scenario_args"]["random_seed"]
+        logging.info("[Learner] Fixing randomness with seed {}".format(seed))
+        np.random.seed(seed)
+        os.environ["PYTHONHASHSEED"] = str(seed)
+        random.seed(seed)        
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    
+    def get_round(self):
+        return self.round
 
     def set_model(self, model):
         self.model = model
@@ -79,6 +89,11 @@ class LightningLearner(NodeLearner):
     def set_data(self, data):
         self.data = data
 
+    ####
+    # Model weights
+    # Encode/decode parameters: https://pytorch.org/docs/stable/notes/serialization.html
+    # There are other ways to encode/decode parameters: protobuf, msgpack, etc.
+    ####
     def encode_parameters(self, params=None, contributors=None, weight=None):
         if params is None:
             params = self.model.state_dict()
@@ -121,7 +136,7 @@ class LightningLearner(NodeLearner):
                 self.config.participant["tracking_args"]["models_dir"],
                 f"participant_{idx}_round_{round}_model.pth"
             )
-            torch.save(self.get_parameters(), path)
+            torch.save(self.model, path)
             logging.info(f"Model saved at: {path} (round {round})")
         except Exception as e:
             logging.error(f"Error saving the model: {e}")
@@ -165,7 +180,7 @@ class LightningLearner(NodeLearner):
 
         return Trainer(**trainer_kwargs)
 
-    def fit(self):
+    def fit(self, label_flipping=False, poisoned_persent=0, targeted=False, target_label=4, target_changed_label=7):    
         """
         Trains the model (training only) and then validates,
         saving metrics separately in train/ and val/.
@@ -174,8 +189,17 @@ class LightningLearner(NodeLearner):
             return
 
         try:
+            logging.info(f"[Learner] label_flipping: {label_flipping}")
             # 1) Trainer for training — only train_logger, without validation
             trainer_train = self._build_trainer([self.train_logger], disable_val=True)
+            if label_flipping:
+                self.data.train_set = labelFlipping(
+                            self.data.train_set, 
+                            self.data.train_set_indices, 
+                            80,
+                            False,
+                            target_label=target_label,
+                            target_changed_label=target_changed_label) 
             trainer_train.fit(self.model, self.data)
 
             # 2) Trainer for validation — only val_logger
@@ -216,6 +240,6 @@ class LightningLearner(NodeLearner):
         pass
 
     def finalize_round(self):
-        if hasattr(self.train_logger, 'local_step'):
-            setattr(self.train_logger, 'local_step', 0)
+        # if hasattr(self.train_logger, 'local_step'):
+        #     setattr(self.train_logger, 'local_step', 0)
         self.round += 1

@@ -3,6 +3,7 @@
     "name": "robust",
     "rounds": 10,
     "simulation": true,
+    "random_seed" : 42,
     "n_nodes": 0,
     "debug": true
   },
@@ -42,9 +43,19 @@
   "tracking_args": {
     "enable_remote_tracking": false,
     "local_tracking": "",
+    "start_date": "",
     "log_dir": "",
     "config_dir": "",
     "models_dir": ""
+  },
+  "adversarial_args": {
+    "attacks": "No Attack",
+    "targeted": false,
+    "poisoned_sample_percent": 80,
+    "poisoned_ratio": 0,
+    "target_label": 0,
+    "noise_type": "salt",
+    "target_changed_label": 0    
   },
   "BLOCK_SIZE": 2048,
   "NODE_TIMEOUT": 20,
@@ -56,9 +67,12 @@
   "TRAIN_SET_SIZE": 10,
   "TRAIN_SET_CONNECT_TIMEOUT": 5,
   "AMOUNT_LAST_MESSAGES_SAVED": 100,
+  "GOSSIP_MODELS_PERIOD": 3,
+  "GOSSIP_MODELS_PER_ROUND": 50,
   "GOSSIP_MESSAGES_FREC": 100,
   "GOSSIP_MESSAGES_PER_ROUND": 500,
   "GOSSIP_EXIT_ON_X_EQUAL_ROUNDS": 40,
   "GOSSIP_MODELS_FREC": 1,
-  "GOSSIP_MODELS_PER_ROUND": 20
+  "GOSSIP_MODELS_PER_ROUND": 20,
+  "REPORT_FREC": 10
 }

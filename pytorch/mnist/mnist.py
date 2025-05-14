@@ -1,31 +1,13 @@
-# 
-# This file an adaptation and extension of the p2pfl library (https://pypi.org/project/p2pfl/).
-# Refer to the LICENSE file for licensing information.
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, version 3.
-#
-# This program is distributed in the hope that it will be useful, but
-# WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-# General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-#
+from math import floor
 import os
 import sys
-from math import floor
+from pytorch.robustdataset import RobustDataset
+import torch
 
-# To Avoid Crashes with a lot of nodes
-import torch.multiprocessing
-from lightning import LightningDataModule
-from torch.utils.data import DataLoader, Subset, random_split
+# import torch.multiprocessing
+# torch.multiprocessing.set_sharing_strategy("file_system")
 from torchvision import transforms
 from torchvision.datasets import MNIST
-
-torch.multiprocessing.set_sharing_strategy("file_system")
 
 
 #######################################
@@ -33,7 +15,7 @@ torch.multiprocessing.set_sharing_strategy("file_system")
 #######################################
 
 
-class MNISTDataModule(LightningDataModule):
+class MNISTDataset(RobustDataset):
     """
     LightningDataModule of partitioned MNIST.
 
@@ -45,121 +27,95 @@ class MNISTDataModule(LightningDataModule):
         val_percent: The percentage of the validation set.
     """
 
-    # Singleton
-    mnist_train = None
-    mnist_val = None
-
     def __init__(
-            self,
-            sub_id=0,
-            number_sub=1,
-            batch_size=32,
-            num_workers=4,
-            val_percent=0.1,
-            iid=True,
+        self,
+        num_classes=10,
+        sub_id=0,
+        number_sub=1,
+        batch_size=32,
+        num_workers=4,
+        val_percent=0.1,
+        iid=True,
+        partition="dirichlet",
+        seed=42,
+        config=None,
     ):
-        super().__init__()
-        self.sub_id = sub_id
-        self.number_sub = number_sub
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.val_percent = val_percent
+        super().__init__(
+            num_classes=num_classes,
+            sub_id=sub_id,
+            number_sub=number_sub,
+            batch_size=batch_size,
+            num_workers=num_workers,
+            val_percent=val_percent,
+            iid=iid,
+            partition=partition,
+            seed=seed,
+            config=config,
+        )
+        if sub_id < 0 or sub_id >= number_sub:
+            raise ValueError(
+                f"sub_id {sub_id} is out of range for number_sub {number_sub}"
+            )
 
-        # Singletons of MNIST train and test datasets
         if not os.path.exists(f"{sys.path[0]}/data"):
             os.makedirs(f"{sys.path[0]}/data")
 
-        if MNISTDataModule.mnist_train is None:
-            MNISTDataModule.mnist_train = MNIST(
-                f"{sys.path[0]}/data", train=True, download=True, transform=transforms.ToTensor()
+    def initialize_dataset(self):
+        # Load MNIST train dataset
+        if self.train_set is None:
+            self.train_set = self.load_mnist_dataset(train=True)
+        if self.test_set is None:
+            self.test_set = self.load_mnist_dataset(train=False)
+
+        # All nodes have the same test set (indices are the same for all nodes)
+        self.test_indices_map = list(range(len(self.test_set)))
+
+        # Depending on the iid flag, generate a non-iid or iid map of the train set
+        if self.iid:
+            self.train_indices_map = self.generate_iid_map(self.train_set)
+        else:
+            self.train_indices_map = self.generate_non_iid_map(
+                self.train_set, self.partition
             )
-            if not iid:
-                sorted_indexes = MNISTDataModule.mnist_train.targets.sort()[1]
-                MNISTDataModule.mnist_train.targets = (
-                    MNISTDataModule.mnist_train.targets[sorted_indexes]
-                )
-                MNISTDataModule.mnist_train.data = MNISTDataModule.mnist_train.data[
-                    sorted_indexes
-                ]
-        if MNISTDataModule.mnist_val is None:
-            MNISTDataModule.mnist_val = MNIST(
-                f"{sys.path[0]}/data", train=False, download=True, transform=transforms.ToTensor()
-            )
-            if not iid:
-                sorted_indexes = MNISTDataModule.mnist_val.targets.sort()[1]
-                MNISTDataModule.mnist_val.targets = MNISTDataModule.mnist_val.targets[
-                    sorted_indexes
-                ]
-                MNISTDataModule.mnist_val.data = MNISTDataModule.mnist_val.data[
-                    sorted_indexes
-                ]
-        if self.sub_id + 1 > self.number_sub:
-            raise ("Not exist the subset {}".format(self.sub_id))
 
-        # Training / validation set
-        trainset = MNISTDataModule.mnist_train
-        rows_by_sub = floor(len(trainset) / self.number_sub)
-        tr_subset = Subset(
-            trainset, range(self.sub_id * rows_by_sub, (self.sub_id + 1) * rows_by_sub)
-        )
-        mnist_train, mnist_val = random_split(
-            tr_subset,
-            [
-                round(len(tr_subset) * (1 - self.val_percent)),
-                round(len(tr_subset) * self.val_percent),
-            ],
+        print(f"Length of train indices map: {len(self.train_indices_map)}")
+        print(f"Lenght of test indices map: {len(self.test_indices_map)}")
+
+    def load_mnist_dataset(self, train=True):
+        apply_transforms = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5, ), (0.5, ))
+        ])
+        return MNIST(
+            f"{sys.path[0]}/data",
+            train=train,
+            download=True,
+            transform=apply_transforms,
         )
 
-        # Test set
-        testset = MNISTDataModule.mnist_val
-        rows_by_sub = floor(len(testset) / self.number_sub)
-        te_subset = Subset(
-            testset, range(self.sub_id * rows_by_sub, (self.sub_id + 1) * rows_by_sub)
-        )
+    def generate_non_iid_map(self, dataset, partition="dirichlet"):
+        if partition == "dirichlet":
+            partitions_map = self.dirichlet_partition(dataset, alpha=0.5)
+        elif partition == "percent":
+            # At now, percentage is fixed to 0.2
+            partitions_map = self.percentage_partition(dataset, percentage=0.2)
+        else:
+            raise ValueError(f"Partition {partition} is not supported for Non-IID map")
 
-        if len(testset) < self.number_sub:
-            raise ("Too much partitions")
+        if self.sub_id == 0:
+            self.plot_data_distribution(dataset, partitions_map)
 
-        # DataLoaders
-        self.train_loader = DataLoader(
-            mnist_train,
-            batch_size=self.batch_size,
-            shuffle=True,
-            num_workers=self.num_workers,
-        )
-        self.val_loader = DataLoader(
-            mnist_val,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-        )
-        self.test_loader = DataLoader(
-            te_subset,
-            batch_size=self.batch_size,
-            shuffle=False,
-            num_workers=self.num_workers,
-        )
-        print(
-            "Train: {} Val:{} Test:{}".format(
-                len(mnist_train), len(mnist_val), len(te_subset)
-            )
-        )
+        return partitions_map[self.sub_id]
 
-    def train_dataloader(self):
-        """ """
-        return self.train_loader
-
-    def val_dataloader(self):
-        """ """
-        return self.val_loader
-
-    def test_dataloader(self):
-        """ """
-        return self.test_loader
-
-
-if __name__ == "__main__":
-    dm = MNISTDataModule()
-    print(dm.train_dataloader())
-    print(dm.val_dataloader())
-    print(dm.test_dataloader())
+    def generate_iid_map(self, dataset):
+        # rows_by_sub = floor(len(dataset) / self.number_sub)
+        # partitions_map = [
+        #     range(i * rows_by_sub, (i + 1) * rows_by_sub)
+        #     for i in range(self.number_sub)
+        # ]
+        # if self.sub_id == 0:
+        #     self.plot_data_distribution(dataset, partitions_map)
+        partitions_map = self.homo_partition(dataset)
+        if self.sub_id == 0:
+            self.plot_data_distribution(dataset, partitions_map)
+        return partitions_map[self.sub_id]

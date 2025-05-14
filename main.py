@@ -1,5 +1,6 @@
 from datetime import datetime
 import hashlib
+from http.client import HTTPException
 import io
 import json
 import logging
@@ -15,9 +16,10 @@ import zipfile
 
 from matplotlib import pyplot as plt
 import numpy as np
+import pandas as pd
 import networkx as nx
 from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
+from fastapi.responses import FileResponse
 from fastapi import Request
 
 from role import Role
@@ -133,12 +135,53 @@ async def stop_scenario(request: Request):
         return {"error": f"Failed to stop scenario: {str(e)}"}
 
 app.mount("/", frontend.frontend)
-     
+
+@app.get("/api/robust/model")
+async def get_best_model(request: Request):
+    best_score = -1.0
+    best_run = None
+    best_round = None
+    best_participant = None
+    log_dir = os.path.join(os.getcwd(), "robust", "logs")
+
+    for dirpath, dirnames, filenames in os.walk(log_dir):
+        if 'metrics.csv' in filenames and '/test/' in dirpath.replace("\\", "/"):
+            metrics_path = os.path.join(dirpath, 'metrics.csv')
+            try:
+                df = pd.read_csv(metrics_path)
+                if "Test/F1Score" in df.columns:
+                    idx = df["Test/F1Score"].idxmax()
+                    score = df["Test/F1Score"].iloc[idx]
+
+                    run_folder = os.path.basename(
+                        os.path.dirname(os.path.dirname(os.path.dirname(metrics_path)))
+                    )
+                    participant = os.path.basename(os.path.dirname(metrics_path))
+
+                    if score > best_score:
+                        best_score = score
+                        best_run = run_folder
+                        best_round = int(idx) - 1
+                        best_participant = participant
+            except Exception as e:
+                print(f"Error processing {metrics_path}: {e}")
+
+    if not all([best_run, best_participant, best_round is not None]):
+        raise HTTPException(404, detail="No valid model found")
+
+    # Generate full model path
+    model_filename = f"{best_participant}_round_{best_round}_model.pth"
+    model_path = os.path.join(os.getcwd(), "robust", "models", best_run, model_filename)
+
+    if not os.path.exists(model_path):
+        raise HTTPException(404, detail="Model file does not exist")
+
+    return FileResponse(path=model_path, filename=model_filename, media_type='application/octet-stream')
+
 # Basics
 def stop_participants():
         if sys.platform == "win32":
             try:
-                # kill all the docker containers which contain the word "nebula-core"
                 commands = [
                     """docker kill $(docker ps -q --filter ancestor=robust) | Out-Null""",
                     """docker rm $(docker ps -a -q --filter ancestor=robust) | Out-Null""",
@@ -407,6 +450,7 @@ def start_federation(idx_start_node, participants, date):
     with open(f"{config_dir}/{date}/docker-compose.yml", "w") as f:
         f.write(docker_compose_file)
     for node in participants:
+        node['tracking_args']['start_date'] = f"{date}"
         node['tracking_args']['log_dir'] = f"/robust/robust/logs/{date}"
         node['tracking_args']['config_dir'] = f"/robust/robust/config/{date}"
         node['tracking_args']['models_dir'] = f"/robust/robust/models/{date}"

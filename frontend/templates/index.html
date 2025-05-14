@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>JSON Generator</title>
+    <title>ROBUST 6G Framework</title>
     <style>
         .node-container {
             display: flex;
@@ -128,6 +128,7 @@
                     <select name="attack-${index}" id="attack-${index}">
                       <option value="No Attack"${node.attack === 'No Attack' ? ' selected' : ''}>No Attack</option>
                       <option value="Model Poisoning"${node.attack === 'Model Poisoning' ? ' selected' : ''}>Model Poisoning</option>
+                      <option value="Label Flipping"${node.attack === 'Label Flipping' ? ' selected' : ''}>Label Flipping</option>
                     </select><br><br>
                     <label>Start:
                         <input type="checkbox" name="start-${index}" ${node.start ? 'checked' : ''}>

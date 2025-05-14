@@ -60,6 +60,8 @@ class BaseNode(threading.Thread, Observer):
         self.simulation = config.participant["scenario_args"]["simulation"]
         self.config = config
 
+        self.addr = f"{self.host}:{self.port}"
+
         # Super init
         threading.Thread.__init__(self, name="node-" + self.get_name())
         self._terminate_flag = threading.Event()
@@ -221,7 +223,7 @@ class BaseNode(threading.Thread, Observer):
 
         # Stop Node
         logging.info(
-            "[BASENODE] Stopping node. Disconnecting from {} nodos".format(
+            "[BASENODE] Stopping node. Disconnecting from {} nodes".format(
                 len(self.__neighbors)
             )
         )
