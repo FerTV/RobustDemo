@@ -21,7 +21,7 @@ import numpy as np
 import pandas as pd
 import networkx as nx
 from fastapi import FastAPI
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from fastapi import Request, Query
 
 from role import Role
@@ -206,55 +206,151 @@ def find_best_model(log_dir: Path, column: str, maximize: bool):
     return best_info, best_score
 
 @app.get("/api/robust/model/{scenario_name}/")
-async def get_best_model(
+async def get_model(
     scenario_name: str,
-    metric: str = Query(
-        "f1score",
-        description="Metric to use: f1score | accuracy | precision | recall | loss"
+    metric: Optional[str] = Query(
+        None,
+        description="Optional metric: f1score | accuracy | precision | recall | loss"
+    ),
+    round: Optional[int] = Query(
+        None,
+        description="Optional specific round number to retrieve the model from"
     )
 ):
     """
-    Return the .pth file for the model with the best score on the given metric
-    within the specified scenario.
+    Return one or more .pth model files from a scenario, based on metric or round.
+    
+    - If neither metric nor round is provided, return all models for the scenario.
+    - If a round is provided, return the model for that round.
+    - If a metric is provided, return the best model based on that metric.
     """
+    base = Path.cwd() / "robust"
+    logs_dir = base / "logs" / scenario_name
+    models_dir = base / "models"
+
+    if not logs_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_name}' not found")
+
+    # 1. If a round is specified
+    if round is not None:
+        found = False
+        for run_dir in models_dir.iterdir():
+            if run_dir.is_dir():
+                for model_file in run_dir.glob(f"*_round_{round}_model.pth"):
+                    if scenario_name in str(run_dir):
+                        model_path = model_file
+                        found = True
+                        break
+            if found:
+                break
+
+        if not found or not model_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model for round {round} not found in scenario '{scenario_name}'"
+            )
+
+        return FileResponse(
+            path=str(model_path),
+            filename=model_path.name,
+            media_type="application/octet-stream"
+        )
+
+    # 2. If a metric is specified
+    if metric is not None:
+        metric = metric.lower()
+        if metric not in METRICS:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid metric '{metric}'. Choose from: {', '.join(METRICS)}"
+            )
+
+        column, maximize = METRICS[metric]
+        (best_run, best_participant, best_round), best_score = find_best_model(logs_dir, column, maximize)
+
+        if best_run is None:
+            raise HTTPException(
+                status_code=404,
+                detail=f"No valid model found for metric '{column}'"
+            )
+
+        model_filename = f"{best_participant}_round_{best_round}_model.pth"
+        model_path = base / "models" / best_run / model_filename
+
+        if not model_path.exists():
+            raise HTTPException(
+                status_code=404,
+                detail=f"Model file not found: {model_filename}"
+            )
+
+        return FileResponse(
+            path=str(model_path),
+            filename=model_filename,
+            media_type="application/octet-stream"
+        )
+
+    # 3. If neither metric nor round is specified: return all models for the scenario
+    found_models = []
+    for run_dir in models_dir.iterdir():
+        if run_dir.is_dir() and scenario_name in str(run_dir):
+            for model_file in run_dir.glob("*_round_*_model.pth"):
+                found_models.append(model_file)
+
+    if not found_models:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No models found for scenario '{scenario_name}'"
+        )
+
+    # Create a temporary ZIP file with all found models
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+        zip_path = Path(tmp.name)
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            for model_file in found_models:
+                arcname = model_file.relative_to(base)
+                zipf.write(model_file, arcname=arcname)
+
+    return FileResponse(
+        path=str(zip_path),
+        filename=f"{scenario_name}_models.zip",
+        media_type="application/zip"
+    )
+
+@app.get("/api/robust/metrics/{scenario_name}/")
+async def get_metrics(scenario_name: str):
     base = Path.cwd() / "robust"
     logs_dir = base / "logs" / scenario_name
 
     if not logs_dir.exists():
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_name}' not found")
 
-    metric = metric.lower()
-    if metric not in METRICS:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid metric '{metric}'. Choose from: {', '.join(METRICS)}"
+    sections = ["metrics", "train", "val", "test"]
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
+        zip_path = Path(tmp.name)
+
+        with zipfile.ZipFile(zip_path, 'w') as zipf:
+            for section in sections:
+                section_dir = logs_dir / section
+                if not section_dir.exists():
+                    continue
+
+                for participant_dir in section_dir.glob("participant_*"):
+                    if not participant_dir.is_dir():
+                        continue
+
+                    csv_path = participant_dir / "metrics.csv"
+                    if csv_path.exists():
+                        arcname = Path(scenario_name) / section / participant_dir.name / "metrics.csv"
+                        zipf.write(csv_path, arcname=arcname)
+
+        return FileResponse(
+            path=str(zip_path),
+            filename=f"{scenario_name}_metrics.zip",
+            media_type="application/zip"
         )
 
-    column, maximize = METRICS[metric]
-    (best_run, best_participant, best_round), best_score = find_best_model(logs_dir, column, maximize)
-
-    if best_run is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No valid model found for metric '{column}'"
-        )
-
-    # Adjust this if your round numbering is offset by 1
-    model_filename = f"{best_participant}_round_{best_round}_model.pth"
-    model_path = base / "models" / best_run / model_filename
-
-    if not model_path.exists():
-        raise HTTPException(
-            status_code=404,
-            detail=f"Model file not found: {model_filename}"
-        )
-
-    # return {"message": "Model found", "model_path": str(model_path), "score": best_score}
-    return FileResponse(
-        path=str(model_path),
-        filename=model_filename,
-        media_type="application/octet-stream"
-    )
+    
 
 app.mount("/", frontend.frontend)
 
