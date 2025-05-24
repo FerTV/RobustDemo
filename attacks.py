@@ -33,9 +33,8 @@ class Attack:
 
 class ModelPoisoning(Attack):
     """
-    Function to perform model poisoning attack on the received weights.
+    Class to perform model poisoning attack on the received weights.
     """
-
     def __init__(self, strength=10000, perc=1.0):
         super().__init__()
         self.strength = strength

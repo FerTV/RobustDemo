@@ -116,6 +116,18 @@ async def read_root():
 
 @app.post("/api/robust/run/scenario")
 async def set_scenario(request: Request):
+    """
+    Run a robust scenario.
+
+    This endpoint receives a JSON object representing a scenario configuration. It saves the
+    scenario to a file, generates the necessary configuration files, and starts the scenario.
+
+    Args:
+        request (Request): The HTTP request containing scenario data in JSON format.
+
+    Returns:
+        dict: A success message with the scenario identifier, or an error message if the operation fails.
+    """
     scenario = await request.json()
     date = scenario.get("date")
     try:
@@ -129,6 +141,18 @@ async def set_scenario(request: Request):
 
 @app.post("/api/robust/stop/scenario")
 async def stop_scenario(request: Request):
+    """
+    Stop a currently running robust scenario.
+
+    This endpoint terminates processes related to the running scenario, such as the dashboard
+    and participant nodes.
+
+    Args:
+        request (Request): The HTTP request object (body not used).
+
+    Returns:
+        dict: A success message if the scenario is stopped, or an error message on failure.
+    """
     try:
         kill_dash()
         stop_participants()
@@ -138,6 +162,18 @@ async def stop_scenario(request: Request):
 
 @app.get("/api/robust/logs")
 async def get_logs(request: Request):
+    """
+    Download all `.log` files from the system as a ZIP archive.
+
+    This endpoint recursively scans the logs directory and packages all `.log` files into
+    a temporary `.zip` archive, which is then sent to the client.
+
+    Args:
+        request (Request): The HTTP request object (body not used).
+
+    Returns:
+        FileResponse: A ZIP archive containing all log files.
+    """
     log_dir = os.path.join(os.getcwd(), "robust", "logs")
     date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     zip_filename = f"logs_{date}.zip"
@@ -349,8 +385,6 @@ async def get_metrics(scenario_name: str):
             filename=f"{scenario_name}_metrics.zip",
             media_type="application/zip"
         )
-
-    
 
 app.mount("/", frontend.frontend)
 
