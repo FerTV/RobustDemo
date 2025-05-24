@@ -5,11 +5,13 @@ import io
 import json
 import logging
 import os
+from pathlib import Path
 import random
 import shutil
 import signal
 import subprocess
 import sys
+import tempfile
 import time
 from typing import Optional
 import zipfile
@@ -20,7 +22,7 @@ import pandas as pd
 import networkx as nx
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
-from fastapi import Request
+from fastapi import Request, Query
 
 from role import Role
 
@@ -134,49 +136,127 @@ async def stop_scenario(request: Request):
     except Exception as e:
         return {"error": f"Failed to stop scenario: {str(e)}"}
 
-app.mount("/", frontend.frontend)
-
-@app.get("/api/robust/model")
-async def get_best_model(request: Request):
-    best_score = -1.0
-    best_run = None
-    best_round = None
-    best_participant = None
+@app.get("/api/robust/logs")
+async def get_logs(request: Request):
     log_dir = os.path.join(os.getcwd(), "robust", "logs")
+    date = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    zip_filename = f"logs_{date}.zip"
 
-    for dirpath, dirnames, filenames in os.walk(log_dir):
-        if 'metrics.csv' in filenames and '/test/' in dirpath.replace("\\", "/"):
-            metrics_path = os.path.join(dirpath, 'metrics.csv')
-            try:
-                df = pd.read_csv(metrics_path)
-                if "Test/F1Score" in df.columns:
-                    idx = df["Test/F1Score"].idxmax()
-                    score = df["Test/F1Score"].iloc[idx]
+    # Directorio temporal del sistema
+    tmp_dir = tempfile.gettempdir()
+    zip_path = os.path.join(tmp_dir, zip_filename)
 
-                    run_folder = os.path.basename(
-                        os.path.dirname(os.path.dirname(os.path.dirname(metrics_path)))
-                    )
-                    participant = os.path.basename(os.path.dirname(metrics_path))
+    with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zipf:
+        for root, dirs, files in os.walk(log_dir):
+            for file in files:
+                if file.lower().endswith(".log"):
+                    fp = os.path.join(root, file)
+                    arcname = os.path.relpath(fp, log_dir)
+                    zipf.write(fp, arcname)
 
-                    if score > best_score:
-                        best_score = score
-                        best_run = run_folder
-                        best_round = int(idx) - 1
-                        best_participant = participant
-            except Exception as e:
-                print(f"Error processing {metrics_path}: {e}")
+    return FileResponse(
+        path=zip_path,
+        filename=zip_filename,
+        media_type="application/zip"
+    )
 
-    if not all([best_run, best_participant, best_round is not None]):
-        raise HTTPException(404, detail="No valid model found")
+METRICS = {
+    "f1score":    ("Test/F1Score",    True),
+    "accuracy":   ("Test/Accuracy",    True),
+    "precision":  ("Test/Precision",   True),
+    "recall":     ("Test/Recall",      True),
+    "loss":       ("Test/Loss",       False),
+}
 
-    # Generate full model path
+def find_best_model(log_dir: Path, column: str, maximize: bool):
+    """
+    Iterate through all test/participant_*/metrics.csv under log_dir,
+    selecting the run, participant and round index with the best (max or min)
+    value in `column`. Returns ((run_folder, participant, round_idx), score).
+    """
+    best_score = float("-inf") if maximize else float("inf")
+    best_info = None  # (run_folder, participant, round_idx)
+
+    for metrics_path in log_dir.rglob("test/*/metrics.csv"):
+        try:
+            df = pd.read_csv(metrics_path)
+        except Exception:
+            continue
+
+        if column not in df.columns:
+            continue
+
+        if maximize:
+            idx = df[column].idxmax()
+            score = float(df[column].iloc[idx])
+            is_better = score > best_score
+        else:
+            idx = df[column].idxmin()
+            score = float(df[column].iloc[idx])
+            is_better = score < best_score
+
+        if not is_better:
+            continue
+
+        run_folder = metrics_path.parents[2].name      # scenario_folder
+        participant = metrics_path.parents[0].name     # participant
+        best_score = score
+        best_info = (run_folder, participant, int(idx))
+
+    return best_info, best_score
+
+@app.get("/api/robust/model/{scenario_name}/")
+async def get_best_model(
+    scenario_name: str,
+    metric: str = Query(
+        "f1score",
+        description="Metric to use: f1score | accuracy | precision | recall | loss"
+    )
+):
+    """
+    Return the .pth file for the model with the best score on the given metric
+    within the specified scenario.
+    """
+    base = Path.cwd() / "robust"
+    logs_dir = base / "logs" / scenario_name
+
+    if not logs_dir.exists():
+        raise HTTPException(status_code=404, detail=f"Scenario '{scenario_name}' not found")
+
+    metric = metric.lower()
+    if metric not in METRICS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid metric '{metric}'. Choose from: {', '.join(METRICS)}"
+        )
+
+    column, maximize = METRICS[metric]
+    (best_run, best_participant, best_round), best_score = find_best_model(logs_dir, column, maximize)
+
+    if best_run is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No valid model found for metric '{column}'"
+        )
+
+    # Adjust this if your round numbering is offset by 1
     model_filename = f"{best_participant}_round_{best_round}_model.pth"
-    model_path = os.path.join(os.getcwd(), "robust", "models", best_run, model_filename)
+    model_path = base / "models" / best_run / model_filename
 
-    if not os.path.exists(model_path):
-        raise HTTPException(404, detail="Model file does not exist")
+    if not model_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Model file not found: {model_filename}"
+        )
 
-    return FileResponse(path=model_path, filename=model_filename, media_type='application/octet-stream')
+    # return {"message": "Model found", "model_path": str(model_path), "score": best_score}
+    return FileResponse(
+        path=str(model_path),
+        filename=model_filename,
+        media_type="application/octet-stream"
+    )
+
+app.mount("/", frontend.frontend)
 
 # Basics
 def stop_participants():
