@@ -73,7 +73,6 @@ class DataModule(LightningDataModule):
 
         # Training / validation set
         # rows_by_sub = floor(len(train_set) / self.number_sub)
-        logging.info(f"[FER] Datamodule label_flipping: {self.label_flipping}")
         tr_subset = ChangeableSubset(
             train_set, train_set_indices, label_flipping=self.label_flipping, poisoned_persent=self.poisoned_percent, poisoned_ratio=self.poisoned_ratio, targeted=self.targeted, target_label=self.target_label,
             target_changed_label=self.target_changed_label, noise_type=self.noise_type

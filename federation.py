@@ -102,7 +102,6 @@ def main():
 
     logging.info(f"Neighbors: {node.get_neighbors()}")
     logging.info(f"Network nodes: {node.get_network_nodes()}")
-    logging.info(f"[FER] Label_flipping: {label_flipping}")
     
     start_node = config.participant["device_args"]["start"]
 
