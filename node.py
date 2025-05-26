@@ -469,10 +469,7 @@ class Node(BaseNode):
             logging.info("[NODE.__train_step] __train_set = {}".format(self.__train_set))
             self.__validate_train_set()
 
-        # TODO: Improve in the future
-        # is_train_set = self.get_name() in self.__train_set
         is_train_set = True
-        #if is_train_set and (self.config.participant["device_args"]["role"] == Role.AGGREGATOR or self.config.participant["device_args"]["role"] == Role.SERVER):
         if is_train_set and (self.config.participant["device_args"]["role"] == Role.AGGREGATOR):
             logging.info("[NODE.__train_step] Role.AGGREGATOR/Role.SERVER process...")
             # Full connect train set
@@ -488,7 +485,6 @@ class Node(BaseNode):
                 self.__evaluate()
 
             # Train
-            # if self.round is not None and self.config.participant["device_args"]["role"] != Role.SERVER:
             if self.round is not None:
                 self.__train()
 
@@ -504,44 +500,7 @@ class Node(BaseNode):
                 self.broadcast(
                     CommunicationProtocol.build_models_aggregated_msg([self.get_name()])
                 )
-                # if self.config.participant["device_args"]["role"] == Role.SERVER:
-                #     self.__gossip_model_difusion()
-                # else:
                 self.__gossip_model_aggregation()
-
-        # elif self.config.participant["device_args"]["role"] == Role.TRAINER:
-        #     logging.info("[NODE.__train_step] Role.TRAINER process...")
-        #     logging.info("[NODE.__train_step] __waiting_aggregated_model = {}".format(self.aggregator.get_waiting_aggregated_model()))
-        #     if self.round is not None:
-        #         self.__connect_and_set_aggregator()
-
-        #     # Evaluate and send metrics
-        #     if self.round is not None:
-        #         self.__evaluate()
-
-        #     # Train
-        #     if self.round is not None:
-        #         self.__train()
-
-        #     # Aggregate Model
-        #     if self.round is not None:
-        #         logging.info("[NODE.__train_step] self.aggregator.add_model with MY MODEL")
-        #         # Node has to aggregate its own model before sending it to the aggregator
-        #         self.aggregator.add_model(
-        #             self.learner.get_parameters(),
-        #             [self.get_name()],
-        #             self.learner.get_num_samples()[0],
-        #         )
-
-        #         logging.info("[NODE.__train_step] self.broadcast with MODELS_AGGREGATED = MY_NAME")
-        #         self.broadcast(
-        #             CommunicationProtocol.build_models_aggregated_msg([self.get_name()])
-        #         )
-
-        #         self.__gossip_model_aggregation()
-
-        #         self.aggregator.set_waiting_aggregated_model()
-        #         time.sleep(5)
 
         elif self.config.participant["device_args"]["role"] == Role.PROXY:
             # If the node is a proxy, it stores the parameters received from the neighbors.
@@ -550,12 +509,6 @@ class Node(BaseNode):
 
             # Aggregate Model
             if self.round is not None:
-                # self.aggregator.add_model(
-                #    self.learner.get_parameters(),
-                #    [self.get_name()],
-                #    self.learner.get_num_samples()[0],
-                # )
-
                 self.broadcast(
                     CommunicationProtocol.build_models_aggregated_msg([self.get_name()])
                 )
@@ -568,21 +521,8 @@ class Node(BaseNode):
                 # In this case, the proxy waits for params and add them to the local storage
                 self.aggregator.set_waiting_aggregated_model()
 
-        elif self.config.participant["device_args"]["role"] == Role.IDLE:
-            # Role.IDLE functionality
-
-            # Set Models To Aggregate
-            # Node won't participate in aggregation process.
-            # __waiting_aggregated_model = True
-            # Then, when the node receives a PARAMS_RECEIVED_EVENT, it will run add_model, and it set parameters to the model
-            self.aggregator.set_waiting_aggregated_model()
-
         else:
             logging.warning("[NODE.__train_step] Role not implemented yet")
-
-        # Gossip aggregated model
-        # if self.round is not None:
-        #    self.__gossip_model_difusion()
 
         # Finish round
         if self.round is not None:
@@ -652,9 +592,6 @@ class Node(BaseNode):
         self.learner.save_model(round=self.round)
         
         self.round = self.round + 1
-        ###FER###
-        #self.learner.logger.log_metrics({"Round": self.round}, step=self.learner.logger.global_step)
-        ###FER###
         logging.info("[LightningLearner] Starting round: {}".format(self.round))
         # Clear node aggregation
         for nc in self.get_neighbors():
@@ -683,18 +620,6 @@ class Node(BaseNode):
             self.__model_initialized = False
             logging.info("[NODE] FL experiment finished | __stop_learning()")
             self.__stop_learning()
-
-    # def __transfer_aggregator_role(self, schema):
-    #     if schema == "random":
-    #         logging.info("[NODE.__transfer_aggregator_role] Transferring aggregator role using schema {}".format(schema))
-    #         # Random
-    #         nc = random.choice(self.get_neighbors())
-    #         msg = CommunicationProtocol.build_transfer_leadership_msg()
-    #         nc.send(msg)
-    #         self.config.participant['device_args']["role"] = "trainer"
-    #         logging.info("[NODE.__transfer_aggregator_role] Aggregator role transfered to {}.".format(nc.get_name()))
-    #     else:
-    #         logging.info("[NODE.__transfer_aggregator_role] Schema {} not found.".format(schema))
 
     #########################
     #    Model Gossiping    #
