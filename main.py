@@ -1,6 +1,5 @@
 from datetime import datetime
 import hashlib
-from http.client import HTTPException
 import io
 import json
 import logging
@@ -20,9 +19,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 import networkx as nx
-from fastapi import FastAPI
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
-from fastapi import Request, Query
+from fastapi.responses import FileResponse,  JSONResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, Request, Query
 
 from role import Role
 
@@ -241,9 +239,13 @@ def find_best_model(log_dir: Path, column: str, maximize: bool):
 
     return best_info, best_score
 
-@app.get("/api/robust/model/{scenario_name}/")
+@app.get("/api/robust/model/{scenario_name}")
 async def get_model(
     scenario_name: str,
+    participant: Optional[int] = Query(
+        None,
+        description="Optional participant number (integer): filters models named `participant_{n}_round_..._model.pth`"
+    ),
     metric: Optional[str] = Query(
         None,
         description="Optional metric: f1score | accuracy | precision | recall | loss"
@@ -254,37 +256,46 @@ async def get_model(
     )
 ):
     """
-    Return one or more .pth model files from a scenario, based on metric or round.
-    
-    - If neither metric nor round is provided, return all models for the scenario.
-    - If a round is provided, return the model for that round.
-    - If a metric is provided, return the best model based on that metric.
+    Return one or more .pth model files from a scenario,
+    optionally filtering by participant number, by round, or by best metric.
+
+    - If neither metric nor round is provided, return all (or all for the participant).
+    - If round is provided, return the model for that round.
+    - If metric is provided, return the best model based on that metric.
     """
-    base = Path.cwd() / "robust"
-    logs_dir = base / "logs" / scenario_name
+    base       = Path.cwd() / "robust"
+    logs_dir   = base / "logs" / scenario_name
     models_dir = base / "models"
 
     if not logs_dir.exists():
         raise HTTPException(status_code=404, detail=f"Scenario '{scenario_name}' not found")
 
-    # 1. If a round is specified
+    # Helper: build the string prefix if participant is given
+    prefix = f"participant_{participant}" if participant is not None else ""
+
+    # 1) If a specific round is provided
     if round is not None:
-        found = False
+        model_path = None
         for run_dir in models_dir.iterdir():
-            if run_dir.is_dir():
-                for model_file in run_dir.glob(f"*_round_{round}_model.pth"):
-                    if scenario_name in str(run_dir):
-                        model_path = model_file
-                        found = True
-                        break
-            if found:
+            if not run_dir.is_dir() or scenario_name not in run_dir.name:
+                continue
+            # if participant given, match exactly that prefix; otherwise wildcard
+            pattern = (
+                f"{prefix}_round_{round}_model.pth"
+                if prefix
+                else f"*_round_{round}_model.pth"
+            )
+            matches = list(run_dir.glob(pattern))
+            if matches:
+                model_path = matches[0]
                 break
 
-        if not found or not model_path.exists():
-            raise HTTPException(
-                status_code=404,
-                detail=f"Model for round {round} not found in scenario '{scenario_name}'"
-            )
+        if not model_path or not model_path.exists():
+            msg = f"Model for round {round}"
+            if participant is not None:
+                msg += f" and participant {participant}"
+            msg += f" not found in scenario '{scenario_name}'"
+            raise HTTPException(status_code=404, detail=msg)
 
         return FileResponse(
             path=str(model_path),
@@ -292,7 +303,7 @@ async def get_model(
             media_type="application/octet-stream"
         )
 
-    # 2. If a metric is specified
+    # 2) If a metric is provided
     if metric is not None:
         metric = metric.lower()
         if metric not in METRICS:
@@ -300,24 +311,43 @@ async def get_model(
                 status_code=400,
                 detail=f"Invalid metric '{metric}'. Choose from: {', '.join(METRICS)}"
             )
-
         column, maximize = METRICS[metric]
-        (best_run, best_participant, best_round), best_score = find_best_model(logs_dir, column, maximize)
 
-        if best_run is None:
-            raise HTTPException(
-                status_code=404,
-                detail=f"No valid model found for metric '{column}'"
-            )
+        # Load all CSV logs into a DataFrame
+        dfs = []
+        for csv_file in logs_dir.rglob("*.csv"):
+            df = pd.read_csv(csv_file)
+            df["run"] = csv_file.parent.name
+            dfs.append(df)
+        if not dfs:
+            raise HTTPException(status_code=404, detail=f"No log files found in '{logs_dir}'")
+        logs_df = pd.concat(dfs, ignore_index=True)
 
-        model_filename = f"{best_participant}_round_{best_round}_model.pth"
-        model_path = base / "models" / best_run / model_filename
+        # Filter by participant if specified
+        if participant is not None:
+            # logs_df["participant"] should contain strings like "participant_3"
+            logs_df = logs_df[logs_df["participant"] == prefix]
+            if logs_df.empty:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"No records for participant {participant} in logs"
+                )
+
+        # Pick best row by metric
+        best_row = (
+            logs_df.loc[logs_df[column].idxmax()]
+            if maximize
+            else logs_df.loc[logs_df[column].idxmin()]
+        )
+
+        best_run         = best_row["run"]
+        best_participant = best_row["participant"]  # e.g. "participant_3"
+        best_round       = best_row["round"]
+        model_filename   = f"{best_participant}_round_{best_round}_model.pth"
+        model_path       = base / "models" / best_run / model_filename
 
         if not model_path.exists():
-            raise HTTPException(
-                status_code=404,
-                detail=f"Model file not found: {model_filename}"
-            )
+            raise HTTPException(status_code=404, detail=f"Model file not found: {model_filename}")
 
         return FileResponse(
             path=str(model_path),
@@ -325,30 +355,34 @@ async def get_model(
             media_type="application/octet-stream"
         )
 
-    # 3. If neither metric nor round is specified: return all models for the scenario
+    # 3) Neither round nor metric: return all models (or only those of the participant)
     found_models = []
     for run_dir in models_dir.iterdir():
-        if run_dir.is_dir() and scenario_name in str(run_dir):
-            for model_file in run_dir.glob("*_round_*_model.pth"):
-                found_models.append(model_file)
+        if not run_dir.is_dir() or scenario_name not in run_dir.name:
+            continue
+        for m in run_dir.glob("*_round_*_model.pth"):
+            if prefix and not m.name.startswith(f"{prefix}_"):
+                continue
+            found_models.append(m)
 
     if not found_models:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No models found for scenario '{scenario_name}'"
-        )
+        msg = f"No models found for scenario '{scenario_name}'"
+        if participant is not None:
+            msg += f" and participant {participant}"
+        raise HTTPException(status_code=404, detail=msg)
 
-    # Create a temporary ZIP file with all found models
+    # Package into a temporary ZIP
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp:
         zip_path = Path(tmp.name)
-        with zipfile.ZipFile(zip_path, 'w') as zipf:
+        with zipfile.ZipFile(zip_path, "w") as zipf:
             for model_file in found_models:
                 arcname = model_file.relative_to(base)
                 zipf.write(model_file, arcname=arcname)
 
+    zip_name = f"{scenario_name}" + (f"_participant_{participant}" if participant is not None else "") + "_models.zip"
     return FileResponse(
         path=str(zip_path),
-        filename=f"{scenario_name}_models.zip",
+        filename=zip_name,
         media_type="application/zip"
     )
 
