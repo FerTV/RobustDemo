@@ -136,7 +136,7 @@ class LightningLearner(NodeLearner):
                 self.config.participant["tracking_args"]["models_dir"],
                 f"participant_{idx}_round_{round}_model.pth"
             )
-            torch.save(self.model, path)
+            torch.save(self.model.state_dict(), path)
             logging.info(f"Model saved at: {path} (round {round})")
         except Exception as e:
             logging.error(f"Error saving the model: {e}")
