@@ -34,3 +34,4 @@ plotly==5.11.0
 pandas==1.5.2
 timm==0.6.13
 docker==7.1.0
+httpx==0.24.1
