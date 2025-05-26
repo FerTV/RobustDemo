@@ -152,3 +152,25 @@ data/
 data-analysis/
 network-analysis/
 docker-compose.yml
+dash.txt
+scenario.json
+*.pyc
+scenario.json
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# pytest cache
+.pytest_cache/
+
+# Compiled extensions
+*.so
+
+# pip cache (optional)
+pip-log.txt
+
+# Other tools’ caches
+.cache/
+node_modules/
