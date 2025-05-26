@@ -2,7 +2,7 @@
 import copy
 import logging
 
-from attacks import labelFlipping
+#from attacks import labelFlipping
 from torch.utils.data import Subset
 
 class ChangeableSubset(Subset):
@@ -32,9 +32,9 @@ class ChangeableSubset(Subset):
         self.target_changed_label = target_changed_label
         self.noise_type = noise_type
 
-        logging.info(f"[FER] changeablesubset label_flipping: {self.label_flipping}")
         if self.label_flipping:
-            self.dataset = labelFlipping(self.dataset, self.indices, self.poisoned_persent, self.targeted, self.target_label, self.target_changed_label)
+            pass
+            #self.dataset = labelFlipping(self.dataset, self.indices, self.poisoned_persent, self.targeted, self.target_label, self.target_changed_label)
 
     def __getitem__(self, idx):
         if isinstance(idx, list):

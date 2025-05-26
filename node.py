@@ -36,7 +36,8 @@ import time
 from lightning.pytorch.loggers import CSVLogger
 
 from base_node import BaseNode
-from attacks import create_attack, labelFlipping
+#from attacks import create_attack, labelFlipping
+from attacks import create_attack
 from communication_protocol import CommunicationProtocol
 from config import Config
 from pytorch.learning.aggregators.fedavg import FedAvg

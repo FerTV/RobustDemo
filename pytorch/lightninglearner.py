@@ -10,7 +10,7 @@ import io
 import gzip
 
 from lightning.pytorch.loggers import CSVLogger
-from attacks import labelFlipping
+#from attacks import labelFlipping
 from pytorch.learning.exceptions import DecodingParamsError, ModelNotMatchingError
 from pytorch.learning.learner import NodeLearner
 import torch
@@ -193,13 +193,14 @@ class LightningLearner(NodeLearner):
             # 1) Trainer for training — only train_logger, without validation
             trainer_train = self._build_trainer([self.train_logger], disable_val=True)
             if label_flipping:
-                self.data.train_set = labelFlipping(
-                            self.data.train_set, 
-                            self.data.train_set_indices, 
-                            80,
-                            False,
-                            target_label=target_label,
-                            target_changed_label=target_changed_label) 
+                # self.data.train_set = labelFlipping(
+                #             self.data.train_set, 
+                #             self.data.train_set_indices, 
+                #             80,
+                #             False,
+                #             target_label=target_label,
+                #             target_changed_label=target_changed_label) 
+                pass
             trainer_train.fit(self.model, self.data)
 
             # 2) Trainer for validation — only val_logger
